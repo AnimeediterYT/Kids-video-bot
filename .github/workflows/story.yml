@@ -1,4 +1,19 @@
-- name: Create Story
+name: Story Generator
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-story:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Story
         run: |
           TOPIC=$(shuf -n 1 topics.txt)
 
@@ -6,3 +21,11 @@
           echo "" >> stories/story.txt
           echo "This is a story about $TOPIC." >> stories/story.txt
           echo "The lesson is that $TOPIC is important." >> stories/story.txt
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Generated story" || exit 0
+          git push
