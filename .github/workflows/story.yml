@@ -22,11 +22,13 @@ jobs:
         run: |
           pip install moviepy
 
+      - name: Create folders
+        run: |
+          mkdir -p stories videos
+
       - name: Generate Story
         run: |
           TOPIC=$(shuf -n 1 topics.txt)
-
-          mkdir -p stories videos
 
           echo "Topic: $TOPIC" > stories/story.txt
           echo "" >> stories/story.txt
@@ -42,12 +44,12 @@ from moviepy.editor import *
 
 text = open("stories/story.txt", "r", encoding="utf-8").read()
 
-clip = ColorClip(size=(1080,1920), color=(0,0,0), duration=8)
+bg = ColorClip(size=(1080,1920), color=(0,0,0), duration=8)
 
-txt = TextClip(text, fontsize=45, color='white', method='caption', size=(1000,None))
+txt = TextClip("Your Story is Ready", fontsize=70, color='white')
 txt = txt.set_duration(8).set_position("center")
 
-video = CompositeVideoClip([clip, txt])
+video = CompositeVideoClip([bg, txt])
 
 video.write_videofile("videos/final.mp4", fps=24)
 EOF
