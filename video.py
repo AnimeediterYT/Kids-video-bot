@@ -1,11 +1,11 @@
-from moviepy.editor import *
+from moviepy import *
 import os
 
 os.makedirs("videos", exist_ok=True)
 
 audio = AudioFileClip("audio/voice.mp3")
 
-bg = ColorClip((1920,1080), color=(0,0,0), duration=audio.duration)
+bg = ColorClip(size=(1920,1080), color=(0,0,0), duration=audio.duration)
 
 video = bg.set_audio(audio)
 
