@@ -1,14 +1,61 @@
-name: Test Workflow
+name: Full Shorts Automation
+
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test Run
-        run: echo "Workflow is working"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Create folders
+        run: |
+          mkdir -p stories audio videos
+
+      - name: Generate Script + Voice
+        run: |
+          python <<EOF
+from gtts import gTTS
+import random
+
+topics = open("topics.txt", encoding="utf-8").read().splitlines()
+topic = random.choice([t for t in topics if t.strip()])
+
+script = (
+    f"Hook: Have you ever thought about {topic}? "
+    f"Story: Many people ignore {topic} in life. "
+    f"Lesson: {topic} is important for success. "
+    f"Ending: Always respect {topic}."
+)
+
+open("stories/story.txt","w",encoding="utf-8").write(script)
+
+tts = gTTS(script)
+tts.save("audio/voice.mp3")
+EOF
+
+      - name: Create Video
+        run: |
+          python generate_video.py
+
+      - name: Commit Output
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Generated Shorts" || exit 0
+          git push
