@@ -1,12 +1,21 @@
-from moviepy.editor import *
+from gtts import gTTS
+import random
+import os
 
-audio = AudioFileClip("audio/voice.mp3")
+os.makedirs("stories", exist_ok=True)
+os.makedirs("audio", exist_ok=True)
 
-bg = ColorClip((1080,1920), color=(0,0,0), duration=audio.duration)
+topics = open("topics.txt", encoding="utf-8").read().splitlines()
+topic = random.choice([t for t in topics if t.strip()])
 
-txt = TextClip("Moral Story", fontsize=70, color='white')
-txt = txt.set_duration(audio.duration).set_position("center")
+script = (
+    f"Hook: Have you ever thought about {topic}? "
+    f"Story: Many people ignore {topic} in life. "
+    f"Lesson: {topic} is important for success. "
+    f"Ending: Always respect {topic}."
+)
 
-video = CompositeVideoClip([bg, txt]).set_audio(audio)
+open("stories/story.txt","w",encoding="utf-8").write(script)
 
-video.write_videofile("videos/final.mp4", fps=24, codec="libx264")
+tts = gTTS(script)
+tts.save("audio/voice.mp3")
