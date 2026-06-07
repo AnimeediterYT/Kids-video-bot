@@ -15,7 +15,7 @@ script = (
     f"Ending: Always respect {topic}."
 )
 
-open("stories/story.txt", "w", encoding="utf-8").write(script)
+open("stories/story.txt","w",encoding="utf-8").write(script)
 
 tts = gTTS(script)
 tts.save("audio/voice.mp3")
