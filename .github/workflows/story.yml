@@ -27,30 +27,10 @@ jobs:
           mkdir -p stories audio videos
 
       - name: Generate Script + Voice
-        run: |
-          python <<EOF
-from gtts import gTTS
-import random
-
-topics = open("topics.txt", encoding="utf-8").read().splitlines()
-topic = random.choice([t for t in topics if t.strip()])
-
-script = (
-    f"Hook: Have you ever thought about {topic}? "
-    f"Story: Many people ignore {topic} in life. "
-    f"Lesson: {topic} is important for success. "
-    f"Ending: Always respect {topic}."
-)
-
-open("stories/story.txt","w",encoding="utf-8").write(script)
-
-tts = gTTS(script)
-tts.save("audio/voice.mp3")
-EOF
+        run: python generate.py
 
       - name: Create Video
-        run: |
-          python generate_video.py
+        run: python video.py
 
       - name: Commit Output
         run: |
