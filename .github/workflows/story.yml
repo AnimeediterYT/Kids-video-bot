@@ -1,4 +1,4 @@
-name: Story Video Generator
+name: Full Shorts Automation
 
 permissions:
   contents: write
@@ -24,25 +24,52 @@ jobs:
 
       - name: Create folders
         run: |
-          mkdir -p stories videos
+          mkdir -p stories audio videos
 
-      - name: Generate Story
+      - name: Generate Script + Voice
         run: |
-          TOPIC=$(shuf -n 1 topics.txt)
+          python <<EOF
+from gtts import gTTS
+import random
 
-          echo "Topic: $TOPIC" > stories/story.txt
-          echo "Hook: Think about $TOPIC" >> stories/story.txt
-          echo "Lesson: $TOPIC is important in life" >> stories/story.txt
-          echo "Ending: Respect $TOPIC always" >> stories/story.txt
+topic = random.choice(open("topics.txt").read().splitlines())
+
+script = f"""
+Have you ever thought about {topic}?
+Many people ignore it in life.
+But {topic} is very important for success.
+Always respect {topic}.
+"""
+
+open("stories/story.txt","w").write(script)
+
+tts = gTTS(script)
+tts.save("audio/voice.mp3")
+EOF
 
       - name: Create Video
         run: |
-          python generate_video.py
+          python <<EOF
+from moviepy.editor import *
+
+text = open("stories/story.txt").read()
+
+audio = AudioFileClip("audio/voice.mp3")
+
+bg = ColorClip((1080,1920), color=(0,0,0), duration=audio.duration)
+
+txt = TextClip("Moral Story", fontsize=60, color='white')
+txt = txt.set_duration(audio.duration).set_position("center")
+
+video = CompositeVideoClip([bg, txt]).set_audio(audio)
+
+video.write_videofile("videos/final.mp4", fps=24, codec="libx264")
+EOF
 
       - name: Commit Output
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Generated video" || exit 0
+          git commit -m "Full auto video" || exit 0
           git push
