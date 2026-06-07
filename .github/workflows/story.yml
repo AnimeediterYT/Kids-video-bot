@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install moviepy imageio[ffmpeg]
+          pip install -r requirements.txt
 
       - name: Create folders
         run: |
@@ -30,7 +30,7 @@ jobs:
         run: |
           TOPIC=$(shuf -n 1 topics.txt)
 
-          echo "TOPIC: $TOPIC" > stories/story.txt
+          echo "Topic: $TOPIC" > stories/story.txt
           echo "Hook: Think about $TOPIC" >> stories/story.txt
           echo "Lesson: $TOPIC is important in life" >> stories/story.txt
           echo "Ending: Respect $TOPIC always" >> stories/story.txt
