@@ -1,73 +1,14 @@
-name: Full Shorts Automation
-
-permissions:
-  contents: write
+name: Test Workflow
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          pip install moviepy imageio[ffmpeg] gtts
-
-      - name: Create folders
-        run: |
-          mkdir -p stories audio videos
-
-      - name: Generate Script + Voice
-        run: |
-          python - <<EOF
-from gtts import gTTS
-import random
-
-topic = random.choice(open("topics.txt").read().splitlines())
-
-script = f"""
-Hook: Have you ever thought about {topic}?
-Story: Many people ignore {topic} in life.
-Lesson: {topic} is important for success.
-Ending: Always respect {topic}.
-"""
-
-open("stories/story.txt","w",encoding="utf-8").write(script)
-
-tts = gTTS(script)
-tts.save("audio/voice.mp3")
-EOF
-
-      - name: Create Video
-        run: |
-          python - <<EOF
-from moviepy.editor import *
-
-audio = AudioFileClip("audio/voice.mp3")
-
-bg = ColorClip((1080,1920), color=(0,0,0), duration=audio.duration)
-
-txt = TextClip("Moral Story", fontsize=70, color='white')
-txt = txt.set_duration(audio.duration).set_position("center")
-
-video = CompositeVideoClip([bg, txt]).set_audio(audio)
-
-video.write_videofile("videos/final.mp4", fps=24, codec="libx264")
-EOF
-
-      - name: Commit Output
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Generated Shorts" || exit 0
-          git push
+      - name: Test Run
+        run: echo "Workflow is working"
