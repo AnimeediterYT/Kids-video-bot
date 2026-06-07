@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install moviepy
+          pip install moviepy imageio[ffmpeg]
 
       - name: Create folders
         run: |
@@ -31,27 +31,26 @@ jobs:
           TOPIC=$(shuf -n 1 topics.txt)
 
           echo "Topic: $TOPIC" > stories/story.txt
-          echo "" >> stories/story.txt
-          echo "Hook: Have you ever thought about $TOPIC?" >> stories/story.txt
-          echo "Story: Many people ignore $TOPIC in life." >> stories/story.txt
-          echo "Moral: $TOPIC is important for success." >> stories/story.txt
-          echo "Ending: Respect $TOPIC and improve your life." >> stories/story.txt
+          echo "Hook: Think about $TOPIC" >> stories/story.txt
+          echo "Lesson: $TOPIC is important in life" >> stories/story.txt
+          echo "End: Respect $TOPIC always" >> stories/story.txt
 
       - name: Create Video
         run: |
           python - <<EOF
 from moviepy.editor import *
 
-text = open("stories/story.txt", "r", encoding="utf-8").read()
+# background
+bg = ColorClip(size=(1080,1920), color=(0,0,0), duration=5)
 
-bg = ColorClip(size=(1080,1920), color=(0,0,0), duration=8)
-
-txt = TextClip("Your Story is Ready", fontsize=70, color='white')
-txt = txt.set_duration(8).set_position("center")
+# just show short text (safe version)
+txt = (TextClip("Moral Story Ready", fontsize=60, color='white')
+       .set_duration(5)
+       .set_position("center"))
 
 video = CompositeVideoClip([bg, txt])
 
-video.write_videofile("videos/final.mp4", fps=24)
+video.write_videofile("videos/final.mp4", fps=24, codec="libx264")
 EOF
 
       - name: Commit Output
