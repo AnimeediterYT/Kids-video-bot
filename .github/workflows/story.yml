@@ -30,25 +30,14 @@ jobs:
         run: |
           TOPIC=$(shuf -n 1 topics.txt)
 
-          echo "Topic: $TOPIC" > stories/story.txt
+          echo "TOPIC: $TOPIC" > stories/story.txt
           echo "Hook: Think about $TOPIC" >> stories/story.txt
           echo "Lesson: $TOPIC is important in life" >> stories/story.txt
           echo "Ending: Respect $TOPIC always" >> stories/story.txt
 
       - name: Create Video
         run: |
-          python -c "
-from moviepy.editor import *
-
-bg = ColorClip(size=(1080,1920), color=(0,0,0), duration=5)
-
-txt = TextClip('Moral Story Ready', fontsize=60, color='white')
-txt = txt.set_duration(5).set_position('center')
-
-video = CompositeVideoClip([bg, txt])
-
-video.write_videofile('videos/final.mp4', fps=24, codec='libx264')
-"
+          python generate_video.py
 
       - name: Commit Output
         run: |
