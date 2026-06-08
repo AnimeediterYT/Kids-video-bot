@@ -1,11 +1,22 @@
 from moviepy import *
+from PIL import Image, ImageDraw, ImageFont
 import os
 
 os.makedirs("videos", exist_ok=True)
 
 audio = AudioFileClip("audio/voice.mp3")
+text = open("stories/story.txt", encoding="utf-8").read()
 
-bg = ColorClip(size=(1920,1080), color=(0,0,0), duration=audio.duration)
+# Create simple background image
+img = Image.new("RGB", (1920,1080), (0,0,0))
+draw = ImageDraw.Draw(img)
+
+draw.text((100,500), text[:200], fill=(255,255,255))
+
+img_path = "assets/bg.png"
+img.save(img_path)
+
+bg = ImageClip(img_path).set_duration(audio.duration)
 
 video = bg.set_audio(audio)
 
