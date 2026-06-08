@@ -5,9 +5,10 @@ from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVide
 
 VIDEOS_FOLDER = "videos"
 AUDIO_FOLDER = "audio"
-OUTPUT_FOLDER = "stories"
 
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+# Create folders automatically if they don't exist
+os.makedirs(VIDEOS_FOLDER, exist_ok=True)
+os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
 # 1. Grab generated audio and background clips from your repository folder
 audio_files = glob.glob(os.path.join(AUDIO_FOLDER, "*.mp3"))
@@ -54,8 +55,16 @@ except Exception as e:
     print(f"⚠️ Subtitle styling skipped: {e}. Outputting plain audio sync.")
     final_video = video_clip.set_audio(audio_clip)
 
-# 4. Save to stories folder for Upload.py to find
-OUTPUT_PATH = os.path.join(OUTPUT_FOLDER, "ready_to_upload.mp4")
-final_video.write_videofile(OUTPUT_PATH, fps=24, codec="libx264", audio_codec="aac")
-print(f"✅ Video creation successful! Target file: {OUTPUT_PATH}")
+# 4. Save EXACTLY where Upload.py looks for it
+OUTPUT_PATH = "output_video.mp4"
+final_video.write_videofile(
+    OUTPUT_PATH, 
+    fps=24, 
+    codec="libx264", 
+    audio_codec="aac",
+    temp_audiofile="temp-audio.m4a", # Safe file write handling
+    remove_temp=True
+)
 
+print(f"✅ Video creation successful! Target file: {OUTPUT_PATH}")
+                                         
