@@ -12,9 +12,9 @@ script = (
     f"Attention. Stop scrolling. "
     f"Have you ever thought about {topic}? "
     f"Most people ignore it. "
-    f"But {topic} can change your life completely. "
-    f"Lesson: {topic} builds discipline, success, and future growth. "
-    f"Remember this always."
+    f"But {topic} can change your life. "
+    f"Lesson: {topic} builds discipline and success. "
+    f"Remember this."
 )
 
 open("stories/story.txt", "w", encoding="utf-8").write(script)
