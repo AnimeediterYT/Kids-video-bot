@@ -76,4 +76,6 @@ else:
 
     except Exception as e:
         print(f"❌ Upload failed: {e}")
-      
+      - name: 3. Upload Short to YouTube
+  run: python Upload.py
+
