@@ -43,12 +43,11 @@ def upload_shorts(youtube, video_path, title, description):
     print(f"✅ Success! Video ID: {response['id']}")
     return response['id']
 
-# 3. Upgraded Feature: Scans the ENTIRE channel for comments (even old videos!)
+# 3. Scans the ENTIRE channel for comments (even old videos!)
 def reply_to_comments(youtube):
     try:
         print("🔍 Scanning the whole channel for recent comments...")
         
-        # This parameter fetches comments from ALL videos on your channel, newest first
         threads = youtube.commentThreads().list(
             part="snippet",
             allThreadsRelatedToChannelId=os.environ.get("YOUTUBE_CHANNEL_ID"), 
@@ -62,7 +61,7 @@ def reply_to_comments(youtube):
             author = top_comment["snippet"]["authorDisplayName"]
             total_replies = thread["snippet"]["totalReplyCount"]
             
-            # Very important: Only reply if the bot hasn't already replied!
+            # Only reply if the bot hasn't already replied!
             if total_replies == 0:
                 print(f"💬 Found a new comment from {author}!")
 
@@ -100,4 +99,4 @@ if __name__ == '__main__':
         )
     else:
         print(f"❌ Error: {video_file} not found.")
-                
+        
