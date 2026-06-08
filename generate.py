@@ -1,5 +1,6 @@
-from gtts import gTTS
 import random
+import asyncio
+import edge_tts
 import os
 
 os.makedirs("stories", exist_ok=True)
@@ -12,12 +13,15 @@ script = (
     f"Attention. Stop scrolling. "
     f"Have you ever thought about {topic}? "
     f"Most people ignore it. "
-    f"But {topic} can change your life. "
-    f"Lesson: {topic} builds discipline and success. "
+    f"But {topic} can change your life completely. "
+    f"Lesson: {topic} builds discipline, success and future growth. "
     f"Remember this."
 )
 
-open("stories/story.txt", "w", encoding="utf-8").write(script)
+open("stories/story.txt","w",encoding="utf-8").write(script)
 
-tts = gTTS(script)
-tts.save("audio/voice.mp3")
+async def main():
+    voice = edge_tts.Communicate(script, "en-US-AriaNeural")
+    await voice.save("audio/voice.mp3")
+
+asyncio.run(main())
