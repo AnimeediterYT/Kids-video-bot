@@ -10,12 +10,12 @@ topics = open("topics.txt", encoding="utf-8").read().splitlines()
 topic = random.choice([t for t in topics if t.strip()])
 
 script = (
-    f"Attention. Stop scrolling. "
+    f"Stop scrolling. Listen carefully. "
     f"Have you ever thought about {topic}? "
     f"Most people ignore it. "
-    f"But {topic} can change your life completely. "
-    f"Lesson: {topic} builds discipline, success and future growth. "
-    f"Remember this."
+    f"But understanding {topic} can change your life. "
+    f"Lesson: {topic} builds discipline, mindset, and success. "
+    f"Remember this forever."
 )
 
 open("stories/story.txt","w",encoding="utf-8").write(script)
