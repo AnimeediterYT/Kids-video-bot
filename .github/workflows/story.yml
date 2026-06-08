@@ -1,4 +1,4 @@
-name: Full Video Automation
+name: AI Video Generator
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
       - name: Create video
         run: python video.py
 
-      - name: Commit and push output
+      - name: Commit output
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
