@@ -1,6 +1,9 @@
 name: AI Video Generator
 
 on:
+  schedule:
+    - cron: "0 2 * * *"   # 1st video daily
+    - cron: "0 14 * * *"  # 2nd video daily
   workflow_dispatch:
 
 permissions:
@@ -11,8 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: true
 
@@ -41,5 +43,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "generated video" || exit 0
+          git commit -m "auto video" || exit 0
           git push origin HEAD:main
