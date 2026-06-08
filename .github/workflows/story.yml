@@ -2,8 +2,14 @@ name: Full AI Video System
 
 on:
   schedule:
-    - cron: "0 2 * * *"
-    - cron: "0 14 * * *"
+    # 💥 SLOT 1: 8:00 AM EST (1:00 PM UTC) -> Morning rush hour for USA (Shorts #1)
+    - cron: "0 13 * * *"
+    
+    # 💥 SLOT 2: 12:00 PM EST (5:00 PM UTC) -> Lunch break scroll for USA (Long video)
+    - cron: "0 17 * * *"
+    
+    # 💥 SLOT 3: 6:00 PM EST (11:00 PM UTC) -> Prime time relaxing evening for USA (Shorts #2)
+    - cron: "0 23 * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib
+          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests
 
       - name: Create folders
         run: |
@@ -39,7 +45,7 @@ jobs:
         run: python video.py
 
       - name: Upload to YouTube
-        run: python upload.py
+        run: python Upload.py
 
       - name: Commit output
         run: |
@@ -48,3 +54,4 @@ jobs:
           git add .
           git commit -m "auto video uploaded" || exit 0
           git push origin HEAD:main
+          
