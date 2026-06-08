@@ -3,14 +3,17 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-# 1. Log in securely using GitHub Secrets only
+# 1. Log in securely using GitHub Secrets only (FIXED)
 def get_youtube_service():
+    client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+    
     creds = Credentials(
         token=os.environ.get("YOUTUBE_ACCESS_TOKEN"),
         refresh_token=os.environ.get("YOUTUBE_REFRESH_TOKEN"),
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
-        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET")
+        client_id=client_id,
+        client_secret=client_secret
     )
     return build('youtube', 'v3', credentials=creds)
 
@@ -25,7 +28,7 @@ def upload_shorts(youtube, video_path, title, description):
         },
         'status': {
             'privacyStatus': 'public',
-            'selfDeclaredMadeForKids': True  # Safe for kids content
+            'selfDeclaredMadeForKids': True
         }
     }
 
@@ -61,7 +64,6 @@ def reply_to_comments(youtube):
             author = top_comment["snippet"]["authorDisplayName"]
             total_replies = thread["snippet"]["totalReplyCount"]
             
-            # Only reply if the bot hasn't already replied!
             if total_replies == 0:
                 print(f"💬 Found a new comment from {author}!")
 
@@ -84,12 +86,12 @@ def reply_to_comments(youtube):
 # Main Runner Loop
 if __name__ == '__main__':
     youtube_instance = get_youtube_service()
-    video_file = "output_video.mp4" # Make sure this matches your video file name
+    video_file = "output_video.mp4" 
     
-    # 1. First, check and reply to any comments on the channel (old or new)
+    # 1. Check and reply to comments
     reply_to_comments(youtube_instance)
     
-    # 2. Second, upload the new video if it exists
+    # 2. Upload the new video if it exists
     if os.path.exists(video_file):
         uploaded_id = upload_shorts(
             youtube=youtube_instance,
