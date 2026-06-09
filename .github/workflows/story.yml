@@ -2,15 +2,10 @@ name: Full AI Video System
 
 on:
   schedule:
-    # 💥 SLOT 1: 8:00 AM EST (1:00 PM UTC) -> Morning rush hour for USA (Shorts #1)
-    - cron: "0 13 * * *"
-    
-    # 💥 SLOT 2: 12:00 PM EST (5:00 PM UTC) -> Lunch break scroll for USA (Long video)
-    - cron: "0 17 * * *"
-    
-    # 💥 SLOT 3: 6:00 PM EST (11:00 PM UTC) -> Prime time relaxing evening for USA (Shorts #2)
-    - cron: "0 23 * * *"
-  workflow_dispatch:
+    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST
+    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST
+    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST
+  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Stages videos into the queue folder
 
 permissions:
   contents: write
@@ -29,47 +24,62 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ImageMagick (Fixes Subtitle Crash)
+      - name: Install ImageMagick & System Utilities
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
           sudo sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
-          sudo sed -i 's/domain="path" rights="none" pattern="@\*"/domain="path" rights="read|write" pattern="@\*"/' /etc/ImageMagick-6/policy.xml
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests
+          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy
 
-      - name: Create folders & Workspace Auto-Cleanup
-        run: |
-          mkdir -p stories audio videos output
-          echo "Purging local cached media resources..."
-          find . -type f \( -name "*.mp3" -o -name "*.mp4" -o -name "*.jpg" \) -delete
+      - name: Create Workspace Folders
+        run: mkdir -p stories audio videos output queue
 
-      - name: Generate script + voice
+      # 🛠️ IF MANUALLY RUN: Generate video and save it to the queue folder
+      - name: Generate and Queue Video (Manual Mode)
+        if: github.event_name == 'workflow_dispatch'
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
-          BACKUP_AI_API_KEY: ${{ secrets.BACKUP_AI_API_KEY }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-        run: python generate.py
+        run: |
+          python generate.py
+          python video.py
+          TIMESTAMP=$(date +%s)
+          mv output_video.mp4 queue/video_${TIMESTAMP}.mp4
+          mv current_matchup.json queue/meta_${TIMESTAMP}.json
+          echo "✅ Video successfully staged inside the local queue folder!"
 
-      - name: Create video
-        run: python video.py
-
-      - name: Upload to YouTube
+      # ⏰ IF SCHEDULED RUN: Post the oldest staged video from the queue
+      - name: Process Scheduled Upload (Schedule Mode)
+        if: github.event_name == 'schedule'
         env:
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python Upload.py
+        run: |
+          OLDEST_VIDEO=$(ls queue/video_*.mp4 2>/dev/null | head -n 1)
+          if [ -z "$OLDEST_VIDEO" ]; then
+            echo "⚠️ Queue empty! Generating a live dynamic video on the spot..."
+            python generate.py
+            python video.py
+            python Upload.py
+          else
+            echo "🚀 Found staged video: $OLDEST_VIDEO. Preparing upload sequence..."
+            cp "$OLDEST_VIDEO" output_video.mp4
+            # Extract timestamp to pull matching metadata JSON cleanly
+            TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
+            cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
+            python Upload.py
+            rm "$OLDEST_VIDEO"
+            rm "queue/meta_${TIMESTAMP}.json"
+            echo "✅ Video uploaded and cleared from local storage queue!"
+          fi
 
-      - name: Commit Status & First-Run Marker
+      - name: Save Queue Progress to Repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f first_run_done.txt ] && git status --porcelain | grep first_run_done.txt; then
-            git add first_run_done.txt
-            git commit -m "System Status: First run cleanup execution complete [skip ci]"
-            git push origin HEAD:main
-          fi
+          git add queue/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Sync system video storage queue [skip ci]" && git push origin HEAD:main)
           
