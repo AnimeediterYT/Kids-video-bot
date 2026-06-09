@@ -27,13 +27,12 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11" # Upgraded from 3.10 to remove that annoying Google error warning!
+          python-version: "3.11"
 
       - name: Install ImageMagick (Fixes Subtitle Crash)
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          # This fixes Ubuntu security settings blocking MoviePy text creation
           sudo sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
           sudo sed -i 's/domain="path" rights="none" pattern="@\*"/domain="path" rights="read|write" pattern="@\*"/' /etc/ImageMagick-6/policy.xml
 
@@ -42,11 +41,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests
 
-      - name: Create folders
+      - name: Create folders & Workspace Auto-Cleanup
         run: |
-          mkdir -p stories audio videos
+          mkdir -p stories audio videos output
+          echo "Purging local cached media resources..."
+          find . -type f \( -name "*.mp3" -o -name "*.mp4" \) -delete
 
       - name: Generate script + voice
+        env:
+          PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
+          BACKUP_AI_API_KEY: ${{ secrets.BACKUP_AI_API_KEY }}
         run: python generate.py
 
       - name: Create video
@@ -54,18 +58,17 @@ jobs:
 
       - name: Upload to YouTube
         env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_ACCESS_TOKEN: ${{ secrets.YOUTUBE_ACCESS_TOKEN }}
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
         run: python Upload.py
 
-      - name: Commit output
+      - name: Commit Status & First-Run Marker
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "auto video uploaded" || exit 0
-          git push origin HEAD:main
+          if [ -f first_run_done.txt ] && git status --porcelain | grep first_run_done.txt; then
+            git add first_run_done.txt
+            git commit -m "System Status: First run cleanup execution complete [skip ci]"
+            git push origin HEAD:main
+          fi
           
