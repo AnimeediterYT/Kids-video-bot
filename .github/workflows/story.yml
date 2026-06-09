@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: checkout@v4
         with:
           persist-credentials: true
 
@@ -28,7 +28,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          # Wipes out the security configuration file preventing subtitle generation
           sudo rm -f /etc/ImageMagick-6/policy.xml
           sudo rm -f /etc/ImageMagick-7/policy.xml
 
@@ -40,18 +39,19 @@ jobs:
       - name: Create Workspace Folders
         run: mkdir -p stories audio videos output queue
 
-      # 🛠️ MANUAL RUN LOGIC: Create video and store it in the queue folder
+      # 🛠️ MANUAL RUN LOGIC: Hands control over to the self-healing supervisor
       - name: Generate and Queue Video (Manual Mode)
         if: github.event_name == 'workflow_dispatch'
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
         run: |
-          python generate.py
-          python video.py
+          python agent_supervisor.py
           TIMESTAMP=$(date +%s)
-          mv output_video.mp4 queue/video_${TIMESTAMP}.mp4
-          mv current_matchup.json queue/meta_${TIMESTAMP}.json
-          echo "✅ Video successfully staged inside the local queue folder!"
+          if [ -f output_video.mp4 ]; then
+            mv output_video.mp4 queue/video_${TIMESTAMP}.mp4
+            mv current_matchup.json queue/meta_${TIMESTAMP}.json
+            echo "✅ Video successfully staged inside the local queue folder!"
+          fi
 
       # ⏰ SCHEDULED RUN LOGIC: Take the oldest video from the queue and post it
       - name: Process Scheduled Upload (Schedule Mode)
@@ -62,9 +62,8 @@ jobs:
         run: |
           OLDEST_VIDEO=$(ls queue/video_*.mp4 2>/dev/null | head -n 1)
           if [ -z "$OLDEST_VIDEO" ]; then
-            echo "⚠️ Queue empty! Generating a live dynamic video on the spot..."
-            python generate.py
-            python video.py
+            echo "⚠️ Queue empty! Running live dynamic setup..."
+            python agent_supervisor.py
             python Upload.py
           else
             echo "🚀 Found staged video: $OLDEST_VIDEO. Preparing upload sequence..."
