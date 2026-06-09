@@ -55,6 +55,8 @@ jobs:
         run: python generate.py
 
       - name: Create video
+        env:
+          LUMA_AI_API_KEY: ${{ secrets.LUMA_AI_API_KEY }}
         run: python video.py
 
       - name: Upload to YouTube
