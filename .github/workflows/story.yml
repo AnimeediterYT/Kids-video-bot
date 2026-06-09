@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p stories audio videos output
           echo "Purging local cached media resources..."
-          find . -type f \( -name "*.mp3" -o -name "*.mp4" \) -delete
+          find . -type f \( -name "*.mp3" -o -name "*.mp4" -o -name "*.jpg" \) -delete
 
       - name: Generate script + voice
         env:
@@ -55,8 +55,6 @@ jobs:
         run: python generate.py
 
       - name: Create video
-        env:
-          LUMA_AI_API_KEY: ${{ secrets.LUMA_AI_API_KEY }}
         run: python video.py
 
       - name: Upload to YouTube
