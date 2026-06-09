@@ -6,7 +6,6 @@ import requests
 os.makedirs("stories", exist_ok=True)
 os.makedirs("audio", exist_ok=True)
 
-# 💥 MASSIVE EXPANDED ROSTER (50+ Characters)
 ROSTER = [
     "Goku", "Vegeta", "Gohan", "Frieza", "Broly", "Beerus", 
     "Luffy", "Zoro", "Sanji", "Shanks", "Kaido", "Gear 5 Luffy",
@@ -29,7 +28,7 @@ def get_ai_script_primary(prompt_details, api_key):
     system_prompt = (
         "You are an expert anime hype scriptwriter. Write a 5-sentence video narration based on the user's request. "
         "Return ONLY a raw JSON object containing a single key named 'script' whose value is an array of exactly 5 short strings. "
-        "Example format: {\"script\": [\"Line 1\", \"Line 2\", \"Line 3\", \"Line 4\", \"Line 5\"]}"
+        "Do not include any markdown formatting like ```json or trailing text."
     )
     
     data = {
@@ -37,22 +36,24 @@ def get_ai_script_primary(prompt_details, api_key):
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt_details}
-        ],
-        "response_format": {"type": "json_object"}
+        ]
     }
     
     response = requests.post(url, headers=headers, json=data, timeout=15)
     response.raise_for_status()
-    raw_content = response.json()["choices"][0]["message"]["content"]
+    raw_content = response.json()["choices"][0]["message"]["content"].strip()
     
-    # Foolproof Parsing Layer
+    # Strip markdown if OpenAI accidentally includes it
+    if raw_content.startswith("```"):
+        raw_content = raw_content.split("\n", 1)[1].rsplit("\n", 1)[0].strip()
+        
     parsed = json.loads(raw_content)
     if "script" in parsed and isinstance(parsed["script"], list):
         return [str(line) for line in parsed["script"][:5]]
     for val in parsed.values():
         if isinstance(val, list):
             return [str(line) for line in val[:5]]
-    raise ValueError("Could not extract clean array from OpenAI response structure.")
+    raise ValueError("Could not extract clean array.")
 
 def build_infinite_concept():
     char1, char2 = random.sample(ROSTER, 2)
@@ -112,19 +113,22 @@ def generate_elevenlabs_voice(text_to_speak):
         return
 
     print("🎙️ Requesting voice rendering from ElevenLabs...")
-    voice_id = "pNInz6obpgLb9nm6EilI"  # High Hype Male Voice (Adam)
+    voice_id = "pNInz6obpgLb9nm6EilI"  # Adam Voice
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     
     headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
+        "accept": "audio/mpeg",
+        "content-type": "application/json",
         "xi-api-key": el_key
     }
     
     data = {
         "text": text_to_speak,
-        "model_id": "eleven_multilingual_v2",
-        "voice_settings": {"stability": 0.45, "similarity_boost": 0.8}
+        "model_id": "eleven_monolingual_v1", # Reverted to classic stable standard model
+        "voice_settings": {
+            "stability": 0.5,
+            "similarity_boost": 0.75
+        }
     }
     
     response = requests.post(url, json=data, headers=headers)
