@@ -2,10 +2,10 @@ name: Full AI Video System
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST
-    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST
-    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST
-  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Stages videos into the queue folder
+    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST (Posts from queue)
+    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST (Posts from queue)
+    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST (Posts from queue)
+  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Generates a video and adds it to the queue
 
 permissions:
   contents: write
@@ -33,12 +33,12 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy
+          pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy duckduckgo_search
 
       - name: Create Workspace Folders
         run: mkdir -p stories audio videos output queue
 
-      # 🛠️ IF MANUALLY RUN: Generate video and save it to the queue folder
+      # 🛠️ MANUAL RUN LOGIC: Create video and store it in the queue folder
       - name: Generate and Queue Video (Manual Mode)
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -51,7 +51,7 @@ jobs:
           mv current_matchup.json queue/meta_${TIMESTAMP}.json
           echo "✅ Video successfully staged inside the local queue folder!"
 
-      # ⏰ IF SCHEDULED RUN: Post the oldest staged video from the queue
+      # ⏰ SCHEDULED RUN LOGIC: Take the oldest video from the queue and post it
       - name: Process Scheduled Upload (Schedule Mode)
         if: github.event_name == 'schedule'
         env:
@@ -67,7 +67,6 @@ jobs:
           else
             echo "🚀 Found staged video: $OLDEST_VIDEO. Preparing upload sequence..."
             cp "$OLDEST_VIDEO" output_video.mp4
-            # Extract timestamp to pull matching metadata JSON cleanly
             TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
             cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
             python Upload.py
@@ -76,6 +75,7 @@ jobs:
             echo "✅ Video uploaded and cleared from local storage queue!"
           fi
 
+      # Synchronizes changes back to your GitHub repository
       - name: Save Queue Progress to Repository
         run: |
           git config user.name "github-actions[bot]"
