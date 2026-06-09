@@ -2,10 +2,10 @@ name: Full AI Video System
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST (Posts from queue)
-    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST (Posts from queue)
-    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST (Posts from queue)
-  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Generates a video and adds it to the queue
+    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST
+    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST
+    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST
+  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Generates and stages a video into the queue
 
 permissions:
   contents: write
@@ -24,11 +24,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ImageMagick & System Utilities
+      - name: Install ImageMagick & Smash Security Restrictions
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          sudo sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+          # Wipes out the security configuration file preventing subtitle generation
+          sudo rm -f /etc/ImageMagick-6/policy.xml
+          sudo rm -f /etc/ImageMagick-7/policy.xml
 
       - name: Install Dependencies
         run: |
@@ -75,7 +77,6 @@ jobs:
             echo "✅ Video uploaded and cleared from local storage queue!"
           fi
 
-      # Synchronizes changes back to your GitHub repository
       - name: Save Queue Progress to Repository
         run: |
           git config user.name "github-actions[bot]"
