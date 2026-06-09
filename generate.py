@@ -92,7 +92,7 @@ def generate_elevenlabs_voice(text_to_speak):
         print("Error: ELEVENLABS_API_KEY is missing from the environment variables!")
         return
 
-    # Using 'Adam' voice ID - highly popular for energetic commentary clips
+    # Using 'Adam' voice ID
     voice_id = "pNInz6obpgLb9nm6EilI"
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     
@@ -104,7 +104,7 @@ def generate_elevenlabs_voice(text_to_speak):
     
     data = {
         "text": text_to_speak,
-        "model_id": "eleven_monolingual_v1",
+        "model_id": "eleven_multilingual_v2", # Upgraded from old deprecated v1 engine
         "voice_settings": {
             "stability": 0.5,
             "similarity_boost": 0.75
@@ -122,4 +122,4 @@ def generate_elevenlabs_voice(text_to_speak):
 if __name__ == "__main__":
     audio_text = generate_dynamic_matchup()
     generate_elevenlabs_voice(audio_text)
-    
+
