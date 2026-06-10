@@ -14,7 +14,6 @@ def get_youtube_service():
     client_secrets_env = os.environ.get("YOUTUBE_CLIENT_SECRETS")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
 
-    # SAFE: do not crash pipeline if missing
     if not client_secrets_env or not refresh_token:
         print("⚠️ Missing YouTube secrets → Upload skipped safely")
         return None
@@ -38,7 +37,7 @@ def get_youtube_service():
 
 
 # ----------------------------
-# PURGE (SAFE ONE-TIME)
+# PURGE (SAFE)
 # ----------------------------
 def purge_channel_videos_once(youtube):
     if youtube is None:
@@ -68,8 +67,7 @@ def purge_channel_videos_once(youtube):
 
         for item in items:
             video_id = item["snippet"]["resourceId"]["videoId"]
-
-            # SAFE MODE (prevents accidental wipe crash)
+            # SAFE MODE: disabled delete
             # youtube.videos().delete(id=video_id).execute()
 
         with open(MARKER_FILE, "w") as f:
@@ -80,7 +78,7 @@ def purge_channel_videos_once(youtube):
 
 
 # ----------------------------
-# UPLOAD SHORTS (SAFE MODE)
+# UPLOAD FUNCTION
 # ----------------------------
 def upload_shorts(youtube, video_path, matchup_title):
 
@@ -130,7 +128,7 @@ def upload_shorts(youtube, video_path, matchup_title):
 
 
 # ----------------------------
-# MAIN EXECUTION
+# MAIN
 # ----------------------------
 if __name__ == "__main__":
 
@@ -140,6 +138,7 @@ if __name__ == "__main__":
 
     purge_channel_videos_once(youtube)
 
+    # FIXED VARIABLE (was causing syntax crash in your log)
     if os.path.exists("current_matchup.json"):
         with open("current_matchup.json", "r") as f:
             title = json.load(f).get("title", "Anime Battle")
@@ -151,9 +150,4 @@ if __name__ == "__main__":
     else:
         print("❌ Video file not found:", video_file)
 
-    print("🎬 Upload step finished (safe mode active)")        title = "Anime Battle"
-
-    if os.path.exists(video_file):
-        upload_shorts(youtube, video_file, title)
-    else:
-        print("❌ Video file not found:", video_file)
+    print("🎬 Upload step finished (safe mode active)")
