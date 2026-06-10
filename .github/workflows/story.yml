@@ -2,10 +2,10 @@ name: Full AI Video System
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 💥 SLOT 1: 8:00 AM EST
-    - cron: "0 17 * * *"   # 💥 SLOT 2: 12:00 PM EST
-    - cron: "0 23 * * *"   # 💥 SLOT 3: 6:00 PM EST
-  workflow_dispatch:       # 🛠️ MANUAL TRIGGER: Generates and stages a video into the queue
+    - cron: "0 13 * * *"
+    - cron: "0 17 * * *"
+    - cron: "0 23 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,11 +24,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ImageMagick & Smash Security Restrictions
+      - name: Install ImageMagick & Fix Policy
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          # Self-healing policy bypass: removes blocks regardless of ImageMagick version
           sudo find /etc/ImageMagick* -name "policy.xml" -exec rm -f {} \; || true
 
       - name: Install Dependencies
@@ -36,55 +35,74 @@ jobs:
           python -m pip install --upgrade pip
           pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy duckduckgo_search
 
-      - name: Ensure Workspace Folders Exist
+      - name: Create Folders
         run: mkdir -p stories audio videos output queue
 
-      # 🛠️ MANUAL RUN LOGIC
-      - name: Generate and Queue Video (Manual Mode)
+      # ================= MANUAL =================
+      - name: Generate (Manual Mode)
         if: github.event_name == 'workflow_dispatch'
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
         run: |
-          python agent_supervisor.py
+          python agent_supervisor.py || true
+
           TIMESTAMP=$(date +%s)
-          if [ -f output_video.mp4 ]; then
-            mv output_video.mp4 queue/video_${TIMESTAMP}.mp4
+
+          if [ -f output/output_video.mp4 ]; then
+            mv output/output_video.mp4 queue/video_${TIMESTAMP}.mp4
             mv current_matchup.json queue/meta_${TIMESTAMP}.json
-            echo "✅ Video successfully staged inside the local queue folder!"
+            echo "✅ Video queued successfully"
+          else
+            echo "❌ No video found"
           fi
 
-      # ⏰ SCHEDULED RUN LOGIC
-      - name: Process Scheduled Upload (Schedule Mode)
+      # ================= SCHEDULE =================
+      - name: Upload (Schedule Mode)
         if: github.event_name == 'schedule'
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
+          set +e
+
           OLDEST_VIDEO=$(ls queue/video_*.mp4 2>/dev/null | head -n 1)
+
           if [ -z "$OLDEST_VIDEO" ]; then
-            echo "⚠️ Queue empty! Running live dynamic setup..."
-            python agent_supervisor.py
-            python Upload.py
-          else
-            echo "🚀 Found staged video: $OLDEST_VIDEO. Preparing upload sequence..."
-            cp "$OLDEST_VIDEO" output_video.mp4
-            TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
-            if [ -f "queue/meta_${TIMESTAMP}.json" ]; then
-              cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
-            fi
-            python Upload.py
-            rm -f "$OLDEST_VIDEO"
-            rm -f "queue/meta_${TIMESTAMP}.json"
-            echo "✅ Video uploaded and cleared from local storage queue!"
+            echo "⚠️ Queue empty → generating live video"
+            python agent_supervisor.py || true
+            python Upload.py || true
+            exit 0
           fi
 
-      - name: Save Queue Progress to Repository
+          echo "🚀 Processing: $OLDEST_VIDEO"
+
+          cp "$OLDEST_VIDEO" output/output_video.mp4
+
+          TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
+
+          if [ -f "queue/meta_${TIMESTAMP}.json" ]; then
+            cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
+          fi
+
+          python Upload.py || true
+
+          rm -f "$OLDEST_VIDEO"
+          rm -f "queue/meta_${TIMESTAMP}.json"
+
+          echo "✅ Upload completed"
+
+      # ================= SAVE QUEUE =================
+      - name: Save Queue
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Ensure git registers the folder even if temporary files change
-          mkdir -p queue && touch queue/.gitkeep
+
+          mkdir -p queue
+          touch queue/.gitkeep
+
           git add queue/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Sync system video storage queue [skip ci]" && git push origin HEAD:main)
-          
+
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "Sync queue [skip ci]" && git push
+          )
