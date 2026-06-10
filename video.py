@@ -2,182 +2,150 @@ import os
 import glob
 import json
 import requests
-from moviepy.editor import (
-    ColorClip,
-    ImageClip,
-    AudioFileClip,
-    TextClip,
-    CompositeVideoClip,
-    VideoFileClip
-)
+from moviepy.editor import ColorClip, ImageClip, AudioFileClip, TextClip, CompositeVideoClip
+from PIL import Image
 
-from ai_video_engine import generate_ai_video
+# -----------------------------
+# FIX: Pillow compatibility for MoviePy
+# -----------------------------
+if not hasattr(Image, "ANTIALIAS"):
+    Image.ANTIALIAS = Image.Resampling.LANCZOS
+
 
 AUDIO_FOLDER = "audio"
 OUTPUT_PATH = "output/output_video.mp4"
 
+# Ensure output folder exists
 os.makedirs("output", exist_ok=True)
 
-
-# ----------------------------
-# LOAD SCRIPT
-# ----------------------------
+# -----------------------------
+# Load script data
+# -----------------------------
 if not os.path.exists("current_matchup.json"):
-    print("❌ Missing current_matchup.json")
+    print("❌ ERROR: current_matchup.json not found!")
     exit(1)
 
 with open("current_matchup.json", "r") as f:
-    data = json.load(f)
+    matchup_data = json.load(f)
 
-title = data["title"]
-lines = data["script"]
+matchup_title = matchup_data["title"]
+lines = matchup_data["script"]
 
-
-# ----------------------------
-# CHARACTER SPLIT
-# ----------------------------
-if " vs " in title:
-    char1, char2 = title.split(" vs ", 1)
+# -----------------------------
+# Character parsing
+# -----------------------------
+if " vs " in matchup_title:
+    char1, char2 = matchup_title.split(" vs ", 1)
 else:
-    char1, char2 = "Hero", "Enemy"
+    char1, char2 = "Hero", "Villain"
 
-print(f"🎬 AI VIDEO MODE: {char1} vs {char2}")
+print(f"🎬 Building video for: {char1} vs {char2}")
 
-
-# ----------------------------
-# AUDIO
-# ----------------------------
+# -----------------------------
+# Audio loading
+# -----------------------------
 audio_files = glob.glob(os.path.join(AUDIO_FOLDER, "*.mp3"))
 
 if not audio_files:
-    print("❌ No audio found")
+    print("❌ No audio found!")
     exit(1)
 
-audio = AudioFileClip(audio_files[0])
-duration = audio.duration
+audio_clip = AudioFileClip(audio_files[0])
+duration = audio_clip.duration
 
-
-# ----------------------------
-# IMAGE FALLBACK SYSTEM
-# ----------------------------
-def fetch_image(name, filename):
+# -----------------------------
+# Image fetch (safe fallback)
+# -----------------------------
+def fetch_character_artwork(name, filename):
+    print(f"🔍 Searching image: {name}")
     try:
         from duckduckgo_search import DDGS
-
         with DDGS() as ddgs:
             results = list(ddgs.images(f"{name} anime wallpaper", max_results=1))
             if results:
                 url = results[0]["image"]
-                img = requests.get(url, timeout=10).content
-
-                with open(filename, "wb") as f:
-                    f.write(img)
-
-                return filename
+                img = requests.get(url, timeout=10)
+                if img.status_code == 200:
+                    with open(filename, "wb") as f:
+                        f.write(img.content)
+                    return filename
     except:
-        return None
+        pass
+    return None
 
+img1 = fetch_character_artwork(char1, "char1.jpg")
+img2 = fetch_character_artwork(char2, "char2.jpg")
 
-img1 = fetch_image(char1, "c1.jpg")
-img2 = fetch_image(char2, "c2.jpg")
-
-
-# ----------------------------
-# AI VIDEO GENERATION
-# ----------------------------
-ai_url = generate_ai_video(f"{char1} vs {char2} anime cinematic fight")
-
-ai_clip = None
-
-if ai_url:
-    try:
-        print("⬇️ Downloading AI video...")
-
-        r = requests.get(ai_url, stream=True, timeout=60)
-        if r.status_code == 200:
-            with open("ai_video.mp4", "wb") as f:
-                for chunk in r.iter_content(chunk_size=1024):
-                    f.write(chunk)
-
-            ai_clip = VideoFileClip("ai_video.mp4").subclip(0, min(4, duration))
-            print("✅ AI video loaded")
-
-    except Exception as e:
-        print("❌ AI video load failed:", e)
-
-
-# ----------------------------
-# CANVAS
-# ----------------------------
-canvas = ColorClip(size=(1080, 1920), color=(10, 10, 15)).set_duration(duration)
+# -----------------------------
+# Canvas setup
+# -----------------------------
+canvas = ColorClip(size=(1080, 1920), color=(10, 10, 10)).set_duration(duration)
 clips = [canvas]
 
-
-# ----------------------------
-# PRIORITY SYSTEM
-# ----------------------------
-
-if ai_clip:
-    clips.append(ai_clip.resize(height=1920))
+# -----------------------------
+# Top character
+# -----------------------------
+if img1 and os.path.exists(img1):
+    clips.append(
+        ImageClip(img1).set_duration(duration).resize(width=1080).set_position(("center", 0))
+    )
 else:
-    if img1:
-        clips.append(ImageClip(img1).set_duration(duration).resize(width=1080).set_position(("center", 0)))
+    clips.append(ColorClip((1080, 960), color=(50, 20, 20)).set_duration(duration).set_position(("center", 0)))
 
-    if img2:
-        clips.append(ImageClip(img2).set_duration(duration).resize(width=1080).set_position(("center", 960)))
+# -----------------------------
+# Bottom character
+# -----------------------------
+if img2 and os.path.exists(img2):
+    clips.append(
+        ImageClip(img2).set_duration(duration).resize(width=1080).set_position(("center", 960))
+    )
+else:
+    clips.append(ColorClip((1080, 960), color=(20, 20, 50)).set_duration(duration).set_position(("center", 960)))
 
-
-# ----------------------------
-# VS TEXT
-# ----------------------------
+# -----------------------------
+# VS text
+# -----------------------------
 try:
-    vs = TextClip(
-        "VS",
-        fontsize=120,
-        color="red",
-        font="Arial-Bold",
-        stroke_color="black",
-        stroke_width=4
-    ).set_duration(duration).set_position("center")
-
-    clips.append(vs)
+    clips.append(
+        TextClip("VS", fontsize=120, color="red")
+        .set_duration(duration)
+        .set_position("center")
+    )
 except:
     pass
 
-
-# ----------------------------
-# SUBTITLES
-# ----------------------------
-time_per_line = duration / max(len(lines), 1)
+# -----------------------------
+# Subtitles
+# -----------------------------
+per_line = duration / max(len(lines), 1)
 
 for i, line in enumerate(lines):
     try:
-        txt = TextClip(
-            line,
-            fontsize=50,
-            color="yellow",
-            font="Arial-Bold",
-            method="caption",
-            size=(900, None)
-        ).set_start(i * time_per_line).set_duration(time_per_line).set_position(("center", 1500))
-
-        clips.append(txt)
+        clips.append(
+            TextClip(
+                line,
+                fontsize=50,
+                color="yellow",
+                method="caption",
+                size=(1000, None)
+            )
+            .set_start(i * per_line)
+            .set_duration(per_line)
+            .set_position(("center", 1500))
+        )
     except:
         pass
 
-
-# ----------------------------
-# FINAL RENDER
-# ----------------------------
-final = CompositeVideoClip(clips).set_audio(audio)
+# -----------------------------
+# Render video
+# -----------------------------
+final = CompositeVideoClip(clips).set_audio(audio_clip)
 
 final.write_videofile(
     OUTPUT_PATH,
     fps=30,
     codec="libx264",
-    audio_codec="aac",
-    temp_audiofile="temp-audio.m4a",
-    remove_temp=True
+    audio_codec="aac"
 )
 
-print("🎬 DONE: AI VIDEO PIPELINE COMPLETE")
+print("✅ VIDEO GENERATED SUCCESSFULLY")
