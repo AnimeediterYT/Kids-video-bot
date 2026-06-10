@@ -7,7 +7,7 @@ from moviepy.editor import *
 from PIL import Image
 
 # -----------------------------
-# FIX: Pillow compatibility (IMPORTANT)
+# FIX PILLLOW COMPATIBILITY
 # -----------------------------
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -18,21 +18,27 @@ OUTPUT_PATH = "output/output_video.mp4"
 
 os.makedirs("output", exist_ok=True)
 
+
 # -----------------------------
-# LOAD DATA (SAFE)
+# LOAD DATA (FULL SAFE)
 # -----------------------------
 try:
     if not os.path.exists("current_matchup.json"):
         raise Exception("missing json")
 
     data = json.load(open("current_matchup.json", "r", encoding="utf-8"))
+
     title = data.get("title", "Anime Battle")
+    description = data.get("description", "Anime battle shorts")
     script = data.get("script", ["Battle starts!", "Who wins?!"])
 
 except Exception as e:
     print("⚠️ JSON LOAD FAILED:", e)
+
     title = "Anime Battle"
+    description = "Anime battle shorts"
     script = ["Battle starts!", "Power explodes!", "Who wins?!"]
+
 
 # -----------------------------
 # AUDIO SAFE LOAD
@@ -49,6 +55,7 @@ except:
     audio = None
     duration = 6
 
+
 # -----------------------------
 # CHARACTER SPLIT SAFE
 # -----------------------------
@@ -59,8 +66,9 @@ else:
 
 print(f"🎬 Rendering: {c1} vs {c2}")
 
+
 # -----------------------------
-# IMAGE FETCH (FAILSAFE)
+# IMAGE FETCH (SAFE)
 # -----------------------------
 def fetch_image(name, filename):
     try:
@@ -83,44 +91,40 @@ def fetch_image(name, filename):
 img1 = fetch_image(c1, "char1.jpg")
 img2 = fetch_image(c2, "char2.jpg")
 
+
 # -----------------------------
-# BASE CANVAS (ALWAYS SAFE)
+# BASE CANVAS
 # -----------------------------
 clips = [
     ColorClip((1080, 1920), color=(10, 10, 10)).set_duration(duration)
 ]
 
+
 # -----------------------------
 # TOP SECTION
 # -----------------------------
-try:
-    if img1 and os.path.exists(img1):
-        clips.append(
-            ImageClip(img1).resize(width=1080).set_duration(duration)
-        )
-    else:
-        clips.append(ColorClip((1080, 960), color=(60, 20, 20)).set_duration(duration))
-except:
+if img1 and os.path.exists(img1):
+    clips.append(ImageClip(img1).resize(width=1080).set_duration(duration))
+else:
     clips.append(ColorClip((1080, 960), color=(60, 20, 20)).set_duration(duration))
+
 
 # -----------------------------
 # BOTTOM SECTION
 # -----------------------------
-try:
-    if img2 and os.path.exists(img2):
-        clips.append(
-            ImageClip(img2)
-            .resize(width=1080)
-            .set_duration(duration)
-            .set_position(("center", 960))
-        )
-    else:
-        clips.append(ColorClip((1080, 960), color=(20, 20, 60)).set_duration(duration))
-except:
+if img2 and os.path.exists(img2):
+    clips.append(
+        ImageClip(img2)
+        .resize(width=1080)
+        .set_duration(duration)
+        .set_position(("center", 960))
+    )
+else:
     clips.append(ColorClip((1080, 960), color=(20, 20, 60)).set_duration(duration))
 
+
 # -----------------------------
-# VS TEXT (SAFE)
+# VS TEXT
 # -----------------------------
 try:
     clips.append(
@@ -131,8 +135,9 @@ try:
 except:
     pass
 
+
 # -----------------------------
-# SUBTITLE ENGINE (SAFE + NO CRASH)
+# SUBTITLE ENGINE
 # -----------------------------
 if not script:
     script = ["Fight starts!", "Power explodes!", "Who wins?!"]
@@ -156,8 +161,9 @@ for i, line in enumerate(script):
     except:
         pass
 
+
 # -----------------------------
-# FINAL RENDER (CRASH PROOF)
+# FINAL RENDER (CRASH SAFE)
 # -----------------------------
 try:
     final = CompositeVideoClip(clips)
@@ -177,7 +183,6 @@ try:
 except Exception as e:
     print("❌ VIDEO FAILED:", e)
 
-    # GUARANTEE OUTPUT FILE EXISTS (IMPORTANT FIX)
     ColorClip((1080, 1920), color=(0, 0, 0)).set_duration(2).write_videofile(
         OUTPUT_PATH,
         fps=30,
