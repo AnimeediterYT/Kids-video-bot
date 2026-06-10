@@ -3,20 +3,38 @@ import time
 import requests
 
 # ----------------------------
-# ENV KEYS (YOU SET THESE)
+# API KEYS (already expected in environment)
 # ----------------------------
 RUNWAY_API_KEY = os.getenv("RUNWAY_API_KEY")
 PIKA_API_KEY = os.getenv("PIKA_API_KEY")
 
+# ----------------------------
+# SIMPLE RATE CONTROL (prevents 429 crashes)
+# ----------------------------
+_last_call_time = 0
+MIN_DELAY = 12  # prevents spam requests
+
+
+def _allow_request():
+    global _last_call_time
+    now = time.time()
+
+    if now - _last_call_time < MIN_DELAY:
+        print("⏳ AI cooldown active — skipping request")
+        return False
+
+    _last_call_time = now
+    return True
+
 
 # ----------------------------
-# RUNWAY AI VIDEO GENERATION
+# RUNWAY (AI VIDEO)
 # ----------------------------
 def runway_generate(prompt):
-    print("🎬 Runway AI generating...")
+    print("🎬 Runway request...")
 
     if not RUNWAY_API_KEY:
-        print("⚠️ Runway API key missing")
+        print("⚠️ Missing Runway API key")
         return None
 
     try:
@@ -36,9 +54,7 @@ def runway_generate(prompt):
         res = requests.post(url, json=payload, headers=headers, timeout=60)
 
         if res.status_code == 200:
-            data = res.json()
-            print("✅ Runway video created")
-            return data.get("video_url")
+            return res.json().get("video_url")
 
         print("❌ Runway failed:", res.text)
         return None
@@ -49,13 +65,13 @@ def runway_generate(prompt):
 
 
 # ----------------------------
-# PIKA AI VIDEO GENERATION
+# PIKA (AI VIDEO)
 # ----------------------------
 def pika_generate(prompt):
-    print("🎬 Pika AI generating...")
+    print("🎬 Pika request...")
 
     if not PIKA_API_KEY:
-        print("⚠️ Pika API key missing")
+        print("⚠️ Missing Pika API key")
         return None
 
     try:
@@ -74,9 +90,7 @@ def pika_generate(prompt):
         res = requests.post(url, json=payload, headers=headers, timeout=60)
 
         if res.status_code == 200:
-            data = res.json()
-            print("✅ Pika video created")
-            return data.get("video_url")
+            return res.json().get("video_url")
 
         print("❌ Pika failed:", res.text)
         return None
@@ -87,24 +101,30 @@ def pika_generate(prompt):
 
 
 # ----------------------------
-# SMART AI ROUTER (MAIN SYSTEM)
+# MAIN AI ROUTER
 # ----------------------------
 def generate_ai_video(prompt):
-    print("🧠 AI VIDEO ROUTER STARTED")
+    print("🧠 AI VIDEO ROUTER START")
 
-    # 1. Try Runway first
+    # STEP 1: safety lock
+    if not _allow_request():
+        return None
+
+    # STEP 2: try Runway
     video = runway_generate(prompt)
     if video:
         return video
 
-    # 2. Wait before fallback
     time.sleep(2)
 
-    # 3. Try Pika
+    # STEP 3: safety lock again
+    if not _allow_request():
+        return None
+
+    # STEP 4: try Pika
     video = pika_generate(prompt)
     if video:
         return video
 
-    # 4. Fallback system
-    print("⚠️ AI VIDEO FAILED → fallback mode activated")
+    print("⚠️ AI failed → fallback mode")
     return None
