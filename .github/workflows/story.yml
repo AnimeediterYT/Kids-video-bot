@@ -34,13 +34,13 @@ jobs:
           pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy duckduckgo_search
 
       # ----------------------------
-      # CREATE FOLDERS
+      # SETUP WORKSPACE
       # ----------------------------
       - name: Setup Workspace
         run: mkdir -p stories audio output queue
 
       # ----------------------------
-      # GENERATE VIDEO
+      # GENERATE SCRIPT
       # ----------------------------
       - name: Generate Content
         env:
@@ -48,25 +48,52 @@ jobs:
         run: |
           python agent_supervisor.py
 
+          echo "📁 DEBUG AFTER GENERATION:"
+          ls -R
+
+          if [ ! -f current_matchup.json ]; then
+            echo "❌ current_matchup.json missing"
+            exit 1
+          fi
+
       # ----------------------------
-      # MOVE OUTPUT SAFELY
+      # VIDEO CREATION
+      # ----------------------------
+      - name: Create Video
+        run: |
+          python video.py
+
+          echo "📁 DEBUG AFTER VIDEO:"
+          ls -R
+
+          if [ ! -f output/output_video.mp4 ]; then
+            echo "❌ VIDEO NOT GENERATED"
+            exit 1
+          fi
+
+          echo "✅ VIDEO CREATED SUCCESSFULLY"
+
+      # ----------------------------
+      # STAGE VIDEO SAFELY
       # ----------------------------
       - name: Stage Video
         run: |
           TIMESTAMP=$(date +%s)
 
-          if [ -f output/output_video.mp4 ]; then
-            mkdir -p queue
-            mv output/output_video.mp4 queue/video_${TIMESTAMP}.mp4
-            mv current_matchup.json queue/meta_${TIMESTAMP}.json
-            echo "✅ Video staged successfully"
-          else
-            echo "❌ No video generated"
+          mkdir -p queue
+
+          if [ ! -f output/output_video.mp4 ]; then
+            echo "❌ MISSING VIDEO FILE"
             exit 1
           fi
 
+          mv output/output_video.mp4 queue/video_${TIMESTAMP}.mp4
+          mv current_matchup.json queue/meta_${TIMESTAMP}.json || true
+
+          echo "✅ VIDEO STAGED"
+
       # ----------------------------
-      # UPLOAD STEP (ONLY HERE)
+      # UPLOAD STEP (SCHEDULE ONLY)
       # ----------------------------
       - name: Upload Video
         if: github.event_name == 'schedule'
@@ -78,19 +105,19 @@ jobs:
           OLDEST_VIDEO=$(ls queue/video_*.mp4 2>/dev/null | head -n 1)
 
           if [ -z "$OLDEST_VIDEO" ]; then
-            echo "⚠️ No queued video. Generating fresh one..."
+            echo "⚠️ No queued video, generating fresh one..."
             python agent_supervisor.py
+            python video.py
           else
-            echo "🚀 Uploading queued video: $OLDEST_VIDEO"
+            echo "🚀 Uploading queued video..."
             cp "$OLDEST_VIDEO" output/output_video.mp4
             cp queue/meta_*.json current_matchup.json || true
           fi
 
-          # REAL FIX: STOP PIPELINE ON FAILURE
           python Upload.py
 
           if [ $? -ne 0 ]; then
-            echo "❌ UPLOAD FAILED — STOPPING PIPELINE"
+            echo "❌ UPLOAD FAILED"
             exit 1
           fi
 
@@ -104,6 +131,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          mkdir -p queue && touch queue/.gitkeep
+
+          git add queue/
+          git diff --quiet && git diff --staged --quiet || git commit -m "sync queue" && git push
           mkdir -p queue && touch queue/.gitkeep
 
           git add queue/
