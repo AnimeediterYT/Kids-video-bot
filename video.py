@@ -5,7 +5,10 @@ import requests
 from moviepy.editor import ColorClip, ImageClip, AudioFileClip, TextClip, CompositeVideoClip
 
 AUDIO_FOLDER = "audio"
-OUTPUT_PATH = "output_video.mp4"
+OUTPUT_PATH = "output/output_video.mp4"
+
+# Ensure output folder exists
+os.makedirs("output", exist_ok=True)
 
 # 1. Load context manifests
 if not os.path.exists("current_matchup.json"):
@@ -33,6 +36,11 @@ print(f"🎬 Building split-screen layout for: {char1} vs {char2}")
 
 # 2. Extract sound layers
 audio_files = glob.glob(os.path.join(AUDIO_FOLDER, "*.mp3"))
+
+if not audio_files:
+    print("❌ No audio found in audio folder!")
+    exit(1)
+
 audio_clip = AudioFileClip(audio_files[0])
 duration = audio_clip.duration
 
@@ -47,11 +55,11 @@ def fetch_character_artwork(name, filename):
                 img_url = search_results[0]['image']
                 res = requests.get(img_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
                 if res.status_code == 200:
-                    with open(filename, "wb") as f: 
+                    with open(filename, "wb") as f:
                         f.write(res.content)
                     return filename
     except Exception as e:
-        print(f"⚠️ Search engine rate limit or error for {name}: {e}")
+        print(f"⚠️ Search error for {name}: {e}")
     return None
 
 img1 = fetch_character_artwork(char1, "char1.jpg")
@@ -61,7 +69,7 @@ img2 = fetch_character_artwork(char2, "char2.jpg")
 canvas = ColorClip(size=(1080, 1920), color=(14, 14, 18)).set_duration(duration)
 clips = [canvas]
 
-# Top Half Layout Setup
+# Top Half
 if img1 and os.path.exists(img1):
     try:
         c1_clip = ImageClip(img1).set_duration(duration).resize(width=1080).set_pos(('center', 0))
@@ -69,7 +77,6 @@ if img1 and os.path.exists(img1):
     except:
         pass
 else:
-    # Stylized Top Poster Fallback if Web Image is Ratelimited
     block1 = ColorClip(size=(1080, 960), color=(35, 18, 18)).set_duration(duration).set_pos(('center', 0))
     clips.append(block1)
     try:
@@ -78,7 +85,7 @@ else:
     except:
         pass
 
-# Bottom Half Layout Setup
+# Bottom Half
 if img2 and os.path.exists(img2):
     try:
         c2_clip = ImageClip(img2).set_duration(duration).resize(width=1080).set_pos(('center', 960))
@@ -86,7 +93,6 @@ if img2 and os.path.exists(img2):
     except:
         pass
 else:
-    # Stylized Bottom Poster Fallback if Web Image is Ratelimited
     block2 = ColorClip(size=(1080, 960), color=(18, 18, 35)).set_duration(duration).set_pos(('center', 960))
     clips.append(block2)
     try:
@@ -95,38 +101,55 @@ else:
     except:
         pass
 
-# 5. Global Typography & Timing Control Overlay
+# 5. VS Tag
 try:
-    vs_tag = TextClip("VS", fontsize=110, color='red', font='Arial-Bold', stroke_color='black', stroke_width=4).set_duration(duration).set_pos('center')
+    vs_tag = TextClip(
+        "VS",
+        fontsize=110,
+        color='red',
+        font='Arial-Bold',
+        stroke_color='black',
+        stroke_width=4
+    ).set_duration(duration).set_pos('center')
     clips.append(vs_tag)
 except:
     pass
 
-duration_per_line = duration / len(lines)
+# 6. Subtitles
+duration_per_line = duration / max(len(lines), 1)
+
 for i, line in enumerate(lines):
     start_time = i * duration_per_line
     try:
         txt_clip = TextClip(
-            line, 
-            fontsize=52, 
-            color='yellow', 
-            font='Arial-Bold', 
-            method='caption', 
+            line,
+            fontsize=52,
+            color='yellow',
+            font='Arial-Bold',
+            method='caption',
             size=(1080 - 120, None)
         ).set_start(start_time).set_duration(duration_per_line).set_pos(('center', 1550))
         clips.append(txt_clip)
     except Exception as e:
-        print(f"⚠️ Subtitle render pass note: {e}")
+        print(f"⚠️ Subtitle warning: {e}")
 
-# 6. Composite & Compile
+# 7. Build final video
 final_video = CompositeVideoClip(clips).set_audio(audio_clip)
+
 final_video.write_videofile(
-    OUTPUT_PATH, 
-    fps=30, 
-    codec="libx264", 
-    audio_codec="aac", 
-    temp_audiofile="temp-audio.m4a", 
+    OUTPUT_PATH,
+    fps=30,
+    codec="libx264",
+    audio_codec="aac",
+    temp_audiofile="temp-audio.m4a",
     remove_temp=True
 )
-print("✅ Split layout engine execution finalized successfully!")
 
+# 8. VERIFY OUTPUT (IMPORTANT FOR GITHUB)
+if os.path.exists(OUTPUT_PATH):
+    size_mb = os.path.getsize(OUTPUT_PATH) / (1024 * 1024)
+    print(f"✅ VIDEO CREATED: {OUTPUT_PATH} ({size_mb:.2f} MB)")
+else:
+    print("❌ VIDEO FAILED TO EXPORT")
+
+print("🎬 Split layout engine finished successfully!")
