@@ -6,12 +6,12 @@ OUTPUT_FILE = "current_matchup.json"
 
 
 # -----------------------------
-# CHARACTER DATABASE (expanded + safer pool)
+# CHARACTER DATABASE
 # -----------------------------
 CHARACTERS = {
     "Dragon Ball": [
         "Goku", "Vegeta", "Gohan", "Trunks", "Piccolo", "Frieza",
-        "Cell", "Broly", "Beerus", "Whis", "Jiren", "Gogeta", "Vegito"
+        "Broly", "Beerus", "Whis", "Jiren", "Gogeta", "Vegito"
     ],
     "Naruto": [
         "Naruto", "Sasuke", "Itachi", "Madara", "Obito",
@@ -19,13 +19,13 @@ CHARACTERS = {
     ],
     "One Piece": [
         "Luffy", "Zoro", "Sanji", "Shanks", "Kaido",
-        "Blackbeard", "Law", "Ace", "Big Mom"
+        "Blackbeard", "Law", "Ace"
     ],
     "Bleach": [
-        "Ichigo", "Aizen", "Byakuya", "Kenpachi", "Yhwach", "Ulquiorra"
+        "Ichigo", "Aizen", "Byakuya", "Kenpachi", "Yhwach"
     ],
     "Jujutsu Kaisen": [
-        "Gojo", "Sukuna", "Yuji", "Megumi", "Toji", "Geto"
+        "Gojo", "Sukuna", "Yuji", "Megumi", "Toji"
     ],
     "Attack on Titan": [
         "Eren", "Levi", "Mikasa", "Reiner", "Zeke"
@@ -43,78 +43,82 @@ CHARACTERS = {
 
 
 # -----------------------------
-# VIRAL SCENARIOS (expanded + retention focused)
-# -----------------------------
-SCENARIOS = [
-    "WHAT IF BATTLE",
-    "TRAPPED IN A DEADLY DIMENSION",
-    "EVIL VERSION AWAKENING",
-    "TIME LOOP FIGHT",
-    "ISSEKAI TRANSPORT",
-    "FUSED POWER EXPLOSION",
-    "FINAL GOD FORM UNLOCK",
-    "BROKEN REALITY COLLISION",
-    "NO RULES DEATH MATCH",
-    "HIDDEN POWER REVEALED"
-]
-
-
-# -----------------------------
-# VIRAL HOOK ENGINE (stronger YouTube Shorts hooks)
+# VIRAL SYSTEMS (EXPANDED ENGINE)
 # -----------------------------
 HOOKS = [
     "WHO WINS THIS?! 😱",
-    "YOU WON'T BELIEVE THIS FIGHT!",
-    "REALITY IS BREAKING APART!",
-    "THIS IS THE STRONGEST BATTLE!",
-    "ONLY 1 SURVIVES THIS..."
+    "YOU WON'T BELIEVE THIS!",
+    "REALITY IS BREAKING!",
+    "THIS FIGHT IS ILLEGAL!",
+    "ONLY ONE SURVIVES..."
 ]
 
+SCENARIOS = [
+    "WHAT IF BATTLE",
+    "TRAPPED IN A DEAD DIMENSION",
+    "EVIL VERSION AWAKENS",
+    "TIME LOOP WAR",
+    "ISSEKAI TRANSPORT",
+    "FUSED POWER COLLISION",
+    "FINAL GOD AWAKENING",
+    "BROKEN REALITY EVENT"
+]
 
-# -----------------------------
-# ACTION ENGINE (dynamic storytelling)
-# -----------------------------
 ACTIONS = [
     "awakens hidden power",
     "breaks all limits",
     "enters god mode",
     "loses control of power",
-    "reaches final evolution"
+    "reaches final evolution",
+    "unlocks forbidden form"
 ]
 
-
-# -----------------------------
-# CLIMAX ENGINE (retention booster)
-# -----------------------------
 CLIMAX = [
     "THE FINAL CLASH EXPLODES!",
     "REALITY COLLAPSES!",
-    "ONLY ONE REMAINS STANDING!",
+    "ONLY ONE REMAINS!",
     "POWER REACHES MAXIMUM!",
     "THE END BEGINS!"
 ]
 
 
 # -----------------------------
-# FLATTEN CHARACTER POOL
+# FLATTEN POOL
 # -----------------------------
-def get_pool():
-    return [c for group in CHARACTERS.values() for c in group]
+def pool():
+    return [c for g in CHARACTERS.values() for c in g]
 
 
 # -----------------------------
-# STORY BUILDER (core upgrade)
+# SMART CHARACTER PICKER
+# (prevents same-franchise boring fights)
 # -----------------------------
-def build_story(c1, c2):
+def smart_pick(p):
+    c1 = random.choice(p)
+
+    # try to pick from different franchise
+    filtered = [c for c in p if c != c1]
+    c2 = random.choice(filtered) if filtered else c1
+
+    return c1, c2
+
+
+# -----------------------------
+# STORY ENGINE (INFINITE VARIATION)
+# -----------------------------
+def story(c1, c2):
     scenario = random.choice(SCENARIOS)
+
+    # dynamic intensity variation
+    intensity = random.randint(1, 3)
 
     script = [
         random.choice(HOOKS),
         f"SCENARIO: {scenario}",
-        f"{c1} {random.choice(ACTIONS)}...",
-        f"{c2} {random.choice(ACTIONS)}...",
+        f"{c1} {random.choice(ACTIONS)}..." * intensity,
+        f"{c2} {random.choice(ACTIONS)}..." * intensity,
         random.choice(CLIMAX),
-        "WHO WILL WIN THIS FIGHT?!"
+        "WHO WILL WIN?!"
     ]
 
     title = f"{c1} vs {c2} - {scenario}"
@@ -123,16 +127,14 @@ def build_story(c1, c2):
 
 
 # -----------------------------
-# MAIN GENERATOR (FAILSAFE + VIRAL)
+# MAIN GENERATOR (FAILSAFE)
 # -----------------------------
 def generate():
     try:
-        pool = get_pool()
+        p = pool()
+        c1, c2 = smart_pick(p)
 
-        c1 = random.choice(pool)
-        c2 = random.choice([c for c in pool if c != c1])
-
-        title, script = build_story(c1, c2)
+        title, script = story(c1, c2)
 
         data = {
             "title": title,
@@ -140,11 +142,10 @@ def generate():
         }
 
     except Exception as e:
-        # HARD FALLBACK (NEVER BREAK PIPELINE)
-        print("⚠️ Generator fallback triggered:", e)
+        print("⚠️ Fallback triggered:", e)
 
         data = {
-            "title": "Goku vs Naruto - WHAT IF BATTLE",
+            "title": "Goku vs Naruto - WHAT IF",
             "script": [
                 "WHO WINS THIS?! 😱",
                 "Battle begins...",
@@ -166,5 +167,5 @@ def generate():
 # RUN
 # -----------------------------
 if __name__ == "__main__":
-    print("🎲 VIRAL SHORTS ENGINE RUNNING...")
+    print("🎲 STEP 2 VIRAL ENGINE ACTIVE")
     generate()
