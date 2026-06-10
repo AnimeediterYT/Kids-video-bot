@@ -28,18 +28,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          sudo rm -f /etc/ImageMagick-6/policy.xml
-          sudo rm -f /etc/ImageMagick-7/policy.xml
+          # Self-healing policy bypass: removes blocks regardless of ImageMagick version
+          sudo find /etc/ImageMagick* -name "policy.xml" -exec rm -f {} \; || true
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy duckduckgo_search
 
-      - name: Create Workspace Folders
+      - name: Ensure Workspace Folders Exist
         run: mkdir -p stories audio videos output queue
 
-      # 🛠️ MANUAL RUN LOGIC: Hands control over to the self-healing supervisor
+      # 🛠️ MANUAL RUN LOGIC
       - name: Generate and Queue Video (Manual Mode)
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -53,10 +53,11 @@ jobs:
             echo "✅ Video successfully staged inside the local queue folder!"
           fi
 
-      # ⏰ SCHEDULED RUN LOGIC: Take the oldest video from the queue and post it
+      # ⏰ SCHEDULED RUN LOGIC
       - name: Process Scheduled Upload (Schedule Mode)
         if: github.event_name == 'schedule'
         env:
+          PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
@@ -69,10 +70,12 @@ jobs:
             echo "🚀 Found staged video: $OLDEST_VIDEO. Preparing upload sequence..."
             cp "$OLDEST_VIDEO" output_video.mp4
             TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
-            cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
+            if [ -f "queue/meta_${TIMESTAMP}.json" ]; then
+              cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
+            fi
             python Upload.py
-            rm "$OLDEST_VIDEO"
-            rm "queue/meta_${TIMESTAMP}.json"
+            rm -f "$OLDEST_VIDEO"
+            rm -f "queue/meta_${TIMESTAMP}.json"
             echo "✅ Video uploaded and cleared from local storage queue!"
           fi
 
@@ -80,6 +83,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Ensure git registers the folder even if temporary files change
+          mkdir -p queue && touch queue/.gitkeep
           git add queue/
           git diff --quiet && git diff --staged --quiet || (git commit -m "Sync system video storage queue [skip ci]" && git push origin HEAD:main)
           
