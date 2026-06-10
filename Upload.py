@@ -4,87 +4,70 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-MARKER_FILE = "first_run_done.txt"
+print("🚀 UPLOAD MODULE STARTED")
 
 
 # ----------------------------
-# SAFE ENV LOADER
+# ENV CHECKER (CLEAR + SIMPLE)
 # ----------------------------
 def get_env(name):
     value = os.environ.get(name)
+
     if not value:
         print(f"⚠️ Missing env: {name}")
+        return None
+
     return value
 
 
 # ----------------------------
-# YOUTUBE SERVICE BUILDER
+# YOUTUBE LOGIN
 # ----------------------------
-def get_youtube_service():
-    client_secrets_env = get_env("YOUTUBE_CLIENT_SECRETS")
+def get_youtube():
+    client_json = get_env("YOUTUBE_CLIENT_SECRETS")
     refresh_token = get_env("YOUTUBE_REFRESH_TOKEN")
 
-    # HARD STOP if missing
-    if not client_secrets_env or not refresh_token:
+    if not client_json or not refresh_token:
         print("❌ Upload BLOCKED: Missing YouTube authentication")
         return None
 
     try:
-        secrets_data = json.loads(client_secrets_env)
+        data = json.loads(client_json)
 
         creds = Credentials(
             token=None,
             refresh_token=refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=secrets_data["web"]["client_id"],
-            client_secret=secrets_data["web"]["client_secret"],
+            client_id=data["web"]["client_id"],
+            client_secret=data["web"]["client_secret"],
         )
 
         return build("youtube", "v3", credentials=creds)
 
     except Exception as e:
-        print("❌ AUTH ERROR (invalid secret format):", e)
+        print("❌ AUTH ERROR:", e)
         return None
 
 
 # ----------------------------
-# SAFE PURGE (DISABLED)
+# UPLOAD VIDEO
 # ----------------------------
-def purge_channel_videos_once(youtube):
-    if youtube is None:
-        print("⚠️ Purge skipped (no service)")
-        return
+def upload(video_path, title, youtube):
 
-    if os.path.exists(MARKER_FILE):
-        return
-
-    print("⚠️ One-time purge skipped (safe mode)")
-
-    try:
-        open(MARKER_FILE, "w").write("done")
-    except:
-        pass
-
-
-# ----------------------------
-# UPLOAD FUNCTION
-# ----------------------------
-def upload_shorts(youtube, video_path, title):
-
-    if youtube is None:
-        print("❌ Upload FAILED: No YouTube connection")
+    if not youtube:
+        print("❌ STOPPED: No YouTube connection")
         return False
 
     if not os.path.exists(video_path):
-        print("❌ Upload FAILED: Video file missing")
+        print("❌ STOPPED: Video file not found")
         return False
 
     try:
         body = {
             "snippet": {
-                "title": (title + " - WHO WINS? #shorts")[:100],
-                "description": (title + " anime battle #shorts")[:200],
-                "tags": ["anime", "shorts", "battle"],
+                "title": (title + " #shorts")[:100],
+                "description": title[:200],
+                "tags": ["anime", "shorts"],
                 "categoryId": "1",
             },
             "status": {
@@ -105,25 +88,22 @@ def upload_shorts(youtube, video_path, title):
         while response is None:
             status, response = request.next_chunk()
 
-        print(f"✅ UPLOAD SUCCESS: {response['id']}")
+        print("✅ UPLOAD SUCCESS:", response["id"])
         return True
 
     except Exception as e:
-        print("❌ UPLOAD ERROR:", e)
+        print("❌ UPLOAD FAILED:", e)
         return False
 
 
 # ----------------------------
-# MAIN (NO FAKE SUCCESS)
+# MAIN
 # ----------------------------
 if __name__ == "__main__":
 
-    print("🚀 UPLOAD MODULE STARTED")
-
-    youtube = get_youtube_service()
     video_file = "output/output_video.mp4"
 
-    purge_channel_videos_once(youtube)
+    youtube = get_youtube()
 
     # load title safely
     try:
@@ -135,19 +115,11 @@ if __name__ == "__main__":
     except:
         title = "Anime Battle"
 
-    # REAL EXECUTION LOGIC
-    if not youtube:
-        print("❌ STOPPED: Missing YouTube auth (fix GitHub secrets)")
-        exit(1)
-
-    if not os.path.exists(video_file):
-        print("❌ STOPPED: Video not found")
-        exit(1)
-
-    success = upload_shorts(youtube, video_file, title)
+    # FINAL DECISION
+    success = upload(video_file, title, youtube)
 
     if not success:
-        print("❌ UPLOAD FAILED (pipeline will stop)")
+        print("❌ UPLOAD FAILED (NO FAKE SUCCESS)")
         exit(1)
 
-    print("🎬 UPLOAD MODULE FINISHED SUCCESSFULLY")
+    print("🎬 UPLOAD MODULE FINISHED")
