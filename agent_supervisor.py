@@ -7,146 +7,81 @@ import time
 PRIMARY_KEY = os.environ.get("PRIMARY_AI_API_KEY")
 
 
+# ----------------------------
+# CHECK AI CREDITS
+# ----------------------------
 def has_api_credits():
-    """Checks if OpenAI API credits are available without breaking the loop."""
     if not PRIMARY_KEY:
         return False
 
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {PRIMARY_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    data = {
-        "model": "gpt-4o-mini",
-        "messages": [{"role": "user", "content": "ping"}],
-        "max_tokens": 5,
-    }
-
     try:
-        res = requests.post(url, json=data, headers=headers, timeout=5)
-        if res.status_code == 429:
-            return False
+        res = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {PRIMARY_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": "ping"}],
+                "max_tokens": 5,
+            },
+            timeout=5,
+        )
         return res.status_code == 200
     except:
         return False
 
 
 # ----------------------------
-# NEW: SAFE RETRY WRAPPER (ADDED ONLY)
+# SAFE RUN FUNCTION
 # ----------------------------
-def run_with_retry(cmd, name, retries=2):
-    for i in range(retries + 1):
-        print(f"⚙️ Running {name} (attempt {i+1})")
-        exit_code = os.system(cmd)
+def run(cmd, name):
+    print(f"⚙️ Running {name}")
+    exit_code = os.system(cmd)
 
-        if exit_code == 0:
-            print(f"✅ {name} success")
-            return True
-
-        print(f"⚠️ {name} failed")
-        time.sleep(2)
-
-    print(f"❌ {name} failed after retries")
-    return False
+    if exit_code == 0:
+        print(f"✅ {name} success")
+        return True
+    else:
+        print(f"❌ {name} failed")
+        return False
 
 
-def ask_manager_ai_to_fix(filename, error_message):
-    """Asks the Gatekeeper AI to fix the script ONLY if credits are active."""
-    if not has_api_credits():
-        print("⏳ Gatekeeper Notice: No credits. Skipping AI self-heal.")
-        return None
+# ----------------------------
+# MAIN PIPELINE
+# ----------------------------
+def run_pipeline():
+    print("🚀 AUTOPILOT PIPELINE STARTED")
 
-    print(f"🤖 Manager AI: Fixing {filename}...")
+    # STEP 0 — AUTOPILOT (NEW)
+    print("🤖 Step 0: Generating viral content with AUTOPILOT")
+    if not run("python autopilot.py", "autopilot.py"):
+        print("⚠️ Autopilot failed, using fallback script system")
 
-    with open(filename, "r") as f:
-        original_code = f.read()
-
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {PRIMARY_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    system_instruction = (
-        "You are a strict code fixer. Only fix the error line. "
-        "Do NOT change design, layout, or structure. "
-        "Return JSON: {\"code\": \"full fixed file\"}"
-    )
-
-    prompt = f"Code:\n{original_code}\n\nError:\n{error_message}"
-
-    data = {
-        "model": "gpt-4o-mini",
-        "messages": [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": prompt},
-        ],
-        "response_format": {"type": "json_object"},
-    }
-
-    try:
-        res = requests.post(url, json=data, headers=headers, timeout=30)
-        res_json = res.json()
-        raw_fix = json.loads(res_json["choices"][0]["message"]["content"])
-        return raw_fix.get("code")
-
-    except Exception as e:
-        print(f"❌ AI error: {e}")
-        return None
-
-
-def run_pipeline_with_self_healing():
-    print("🚀 Supervisor: Starting pipeline...")
-
-    # ----------------------------
-    # STEP 1 (IMPROVED WITH RETRY)
-    # ----------------------------
-    print("📦 Step 1: Running generate.py")
-    if not run_with_retry("python generate.py", "generate.py"):
-        print("⚠️ generate.py failed → continuing anyway (fallback mode)")
-
-    # ----------------------------
-    # STEP 2 (VIDEO + SELF HEAL KEPT SAME)
-    # ----------------------------
-    print("🎬 Step 2: Running video.py")
-    video_exit = os.system("python video.py")
-
-    if video_exit != 0:
-        print("💥 video.py crashed, attempting self-heal...")
-
-        error_context = "Video rendering failure (MoviePy/Image/audio issue)"
-
-        fixed_code = ask_manager_ai_to_fix("video.py", error_context)
-
-        if fixed_code:
-            if "TextClip" in fixed_code:
-                print("✅ Fix accepted, updating video.py")
-
-                with open("video.py", "w") as f:
-                    f.write(fixed_code)
-
-                print("🔄 Retrying video.py")
-                os.system("python video.py")
-            else:
-                print("❌ Fix rejected (layout modified)")
-        else:
-            print("⚠️ No fix applied")
-
+    # VERIFY SCRIPT EXISTS
+    if not os.path.exists("current_matchup.json"):
+        print("❌ No script generated. Stopping pipeline.")
         return
 
-    # ----------------------------
-    # STEP 3 (UPLOAD GUARANTEED WITH RETRY)
-    # ----------------------------
-    print("📤 Step 3: Running Upload.py")
+    # STEP 1 — GENERATE (OPTIONAL SAFETY)
+    print("📦 Step 1: generate.py (optional fallback)")
+    run("python generate.py", "generate.py")
 
-    if not run_with_retry("python Upload.py", "Upload.py"):
-        print("❌ Upload failed after retries")
-        return
+    # STEP 2 — VIDEO CREATION
+    print("🎬 Step 2: video.py")
+    if not run("python video.py", "video.py"):
+        print("💥 Video failed, continuing to upload attempt")
 
-    print("🎉 Pipeline complete successfully!")
+    # STEP 3 — UPLOAD (GUARANTEED)
+    print("📤 Step 3: Upload.py")
+    run("python Upload.py", "Upload.py")
+
+    print("🎉 PIPELINE COMPLETE — AUTOPILOT MODE ACTIVE")
 
 
+# ----------------------------
+# ENTRY POINT
+# ----------------------------
 if __name__ == "__main__":
-    run_pipeline_with_self_healing()
+    run_pipeline()
