@@ -16,93 +16,95 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
+      # ----------------------------
+      # SETUP PYTHON
+      # ----------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install ImageMagick & Fix Policy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
-          sudo find /etc/ImageMagick* -name "policy.xml" -exec rm -f {} \; || true
-
+      # ----------------------------
+      # INSTALL DEPENDENCIES
+      # ----------------------------
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install edge-tts moviepy==1.0.3 imageio[ffmpeg] google-api-python-client google-auth google-auth-oauthlib requests numpy duckduckgo_search
 
-      - name: Create Folders
-        run: mkdir -p stories audio videos output queue
+      # ----------------------------
+      # CREATE FOLDERS
+      # ----------------------------
+      - name: Setup Workspace
+        run: mkdir -p stories audio output queue
 
-      # ================= MANUAL =================
-      - name: Generate (Manual Mode)
-        if: github.event_name == 'workflow_dispatch'
+      # ----------------------------
+      # GENERATE VIDEO
+      # ----------------------------
+      - name: Generate Content
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
         run: |
-          python agent_supervisor.py || true
+          python agent_supervisor.py
 
+      # ----------------------------
+      # MOVE OUTPUT SAFELY
+      # ----------------------------
+      - name: Stage Video
+        run: |
           TIMESTAMP=$(date +%s)
 
           if [ -f output/output_video.mp4 ]; then
+            mkdir -p queue
             mv output/output_video.mp4 queue/video_${TIMESTAMP}.mp4
             mv current_matchup.json queue/meta_${TIMESTAMP}.json
-            echo "✅ Video queued successfully"
+            echo "✅ Video staged successfully"
           else
-            echo "❌ No video found"
+            echo "❌ No video generated"
+            exit 1
           fi
 
-      # ================= SCHEDULE =================
-      - name: Upload (Schedule Mode)
+      # ----------------------------
+      # UPLOAD STEP (ONLY HERE)
+      # ----------------------------
+      - name: Upload Video
         if: github.event_name == 'schedule'
         env:
           PRIMARY_AI_API_KEY: ${{ secrets.PRIMARY_AI_API_KEY }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
-          set +e
-
           OLDEST_VIDEO=$(ls queue/video_*.mp4 2>/dev/null | head -n 1)
 
           if [ -z "$OLDEST_VIDEO" ]; then
-            echo "⚠️ Queue empty → generating live video"
-            python agent_supervisor.py || true
-            python Upload.py || true
-            exit 0
+            echo "⚠️ No queued video. Generating fresh one..."
+            python agent_supervisor.py
+          else
+            echo "🚀 Uploading queued video: $OLDEST_VIDEO"
+            cp "$OLDEST_VIDEO" output/output_video.mp4
+            cp queue/meta_*.json current_matchup.json || true
           fi
 
-          echo "🚀 Processing: $OLDEST_VIDEO"
+          # REAL FIX: STOP PIPELINE ON FAILURE
+          python Upload.py
 
-          cp "$OLDEST_VIDEO" output/output_video.mp4
-
-          TIMESTAMP=$(echo "$OLDEST_VIDEO" | sed 's/[^0-9]//g')
-
-          if [ -f "queue/meta_${TIMESTAMP}.json" ]; then
-            cp "queue/meta_${TIMESTAMP}.json" current_matchup.json
+          if [ $? -ne 0 ]; then
+            echo "❌ UPLOAD FAILED — STOPPING PIPELINE"
+            exit 1
           fi
 
-          python Upload.py || true
+          echo "🎉 UPLOAD SUCCESS"
 
-          rm -f "$OLDEST_VIDEO"
-          rm -f "queue/meta_${TIMESTAMP}.json"
-
-          echo "✅ Upload completed"
-
-      # ================= SAVE QUEUE =================
+      # ----------------------------
+      # SAVE QUEUE STATE
+      # ----------------------------
       - name: Save Queue
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          mkdir -p queue
-          touch queue/.gitkeep
+          mkdir -p queue && touch queue/.gitkeep
 
           git add queue/
-
-          git diff --quiet && git diff --staged --quiet || (
-            git commit -m "Sync queue [skip ci]" && git push
-          )
+          git diff --quiet && git diff --staged --quiet || git commit -m "sync queue" && git push
