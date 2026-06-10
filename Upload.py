@@ -7,27 +7,44 @@ from google.oauth2.credentials import Credentials
 MARKER_FILE = "first_run_done.txt"
 
 
+# ----------------------------
+# YOUTUBE SERVICE (SAFE MODE)
+# ----------------------------
 def get_youtube_service():
     client_secrets_env = os.environ.get("YOUTUBE_CLIENT_SECRETS")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
 
+    # SAFE: do not crash pipeline if missing
     if not client_secrets_env or not refresh_token:
-        raise ValueError("❌ Missing YouTube secrets")
+        print("⚠️ Missing YouTube secrets → Upload skipped safely")
+        return None
 
-    secrets_data = json.loads(client_secrets_env)
+    try:
+        secrets_data = json.loads(client_secrets_env)
 
-    creds = Credentials(
-        token=None,
-        refresh_token=refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=secrets_data["web"]["client_id"],
-        client_secret=secrets_data["web"]["client_secret"],
-    )
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=secrets_data["web"]["client_id"],
+            client_secret=secrets_data["web"]["client_secret"],
+        )
 
-    return build("youtube", "v3", credentials=creds)
+        return build("youtube", "v3", credentials=creds)
+
+    except Exception as e:
+        print("❌ YouTube auth error:", e)
+        return None
 
 
+# ----------------------------
+# PURGE (SAFE ONE-TIME)
+# ----------------------------
 def purge_channel_videos_once(youtube):
+    if youtube is None:
+        print("⚠️ Skip purge (no YouTube service)")
+        return
+
     if os.path.exists(MARKER_FILE):
         return
 
@@ -35,7 +52,8 @@ def purge_channel_videos_once(youtube):
 
     try:
         channels_response = youtube.channels().list(
-            mine=True, part="contentDetails"
+            mine=True,
+            part="contentDetails"
         ).execute()
 
         uploads_playlist_id = channels_response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
@@ -50,17 +68,30 @@ def purge_channel_videos_once(youtube):
 
         for item in items:
             video_id = item["snippet"]["resourceId"]["videoId"]
-            # ❌ DISABLED SAFE MODE (prevents channel wipe crash)
+
+            # SAFE MODE (prevents accidental wipe crash)
             # youtube.videos().delete(id=video_id).execute()
 
         with open(MARKER_FILE, "w") as f:
             f.write("done")
 
     except Exception as e:
-        print(f"Purge error: {e}")
+        print("⚠️ Purge error:", e)
 
 
+# ----------------------------
+# UPLOAD SHORTS (SAFE MODE)
+# ----------------------------
 def upload_shorts(youtube, video_path, matchup_title):
+
+    if youtube is None:
+        print("⚠️ Upload skipped (no YouTube connection)")
+        return None
+
+    if not os.path.exists(video_path):
+        print("❌ Video not found:", video_path)
+        return None
+
     video_title = f"{matchup_title} - WHO WINS? #shorts"
     video_description = f"{matchup_title} anime battle #shorts"
 
@@ -77,21 +108,34 @@ def upload_shorts(youtube, video_path, matchup_title):
         },
     }
 
-    media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
-    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+    try:
+        media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
 
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
+        request = youtube.videos().insert(
+            part="snippet,status",
+            body=body,
+            media_body=media
+        )
 
-    print(f"✅ Uploaded: {response['id']}")
-    return response["id"]
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+
+        print(f"✅ Uploaded: {response['id']}")
+        return response["id"]
+
+    except Exception as e:
+        print("❌ Upload failed:", e)
+        return None
 
 
+# ----------------------------
+# MAIN EXECUTION
+# ----------------------------
 if __name__ == "__main__":
+
     youtube = get_youtube_service()
 
-    # FIXED PATH
     video_file = "output/output_video.mp4"
 
     purge_channel_videos_once(youtube)
@@ -101,6 +145,13 @@ if __name__ == "__main__":
             title = json.load(f).get("title", "Anime Battle")
     else:
         title = "Anime Battle"
+
+    if os.path.exists(video_file):
+        upload_shorts(youtube, video_file, title)
+    else:
+        print("❌ Video file not found:", video_file)
+
+    print("🎬 Upload step finished (safe mode active)")        title = "Anime Battle"
 
     if os.path.exists(video_file):
         upload_shorts(youtube, video_file, title)
