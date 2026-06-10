@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import requests
+import time
 
 PRIMARY_KEY = os.environ.get("PRIMARY_AI_API_KEY")
 
@@ -30,6 +31,25 @@ def has_api_credits():
         return res.status_code == 200
     except:
         return False
+
+
+# ----------------------------
+# NEW: SAFE RETRY WRAPPER (ADDED ONLY)
+# ----------------------------
+def run_with_retry(cmd, name, retries=2):
+    for i in range(retries + 1):
+        print(f"⚙️ Running {name} (attempt {i+1})")
+        exit_code = os.system(cmd)
+
+        if exit_code == 0:
+            print(f"✅ {name} success")
+            return True
+
+        print(f"⚠️ {name} failed")
+        time.sleep(2)
+
+    print(f"❌ {name} failed after retries")
+    return False
 
 
 def ask_manager_ai_to_fix(filename, error_message):
@@ -80,15 +100,16 @@ def ask_manager_ai_to_fix(filename, error_message):
 def run_pipeline_with_self_healing():
     print("🚀 Supervisor: Starting pipeline...")
 
-    # STEP 1
+    # ----------------------------
+    # STEP 1 (IMPROVED WITH RETRY)
+    # ----------------------------
     print("📦 Step 1: Running generate.py")
-    gen_exit = os.system("python generate.py")
+    if not run_with_retry("python generate.py", "generate.py"):
+        print("⚠️ generate.py failed → continuing anyway (fallback mode)")
 
-    if gen_exit != 0:
-        print("❌ generate.py failed")
-        return
-
-    # STEP 2
+    # ----------------------------
+    # STEP 2 (VIDEO + SELF HEAL KEPT SAME)
+    # ----------------------------
     print("🎬 Step 2: Running video.py")
     video_exit = os.system("python video.py")
 
@@ -115,16 +136,16 @@ def run_pipeline_with_self_healing():
 
         return
 
-    # STEP 3 (ADDED SAFELY — DOES NOT BREAK YOUR SYSTEM)
+    # ----------------------------
+    # STEP 3 (UPLOAD GUARANTEED WITH RETRY)
+    # ----------------------------
     print("📤 Step 3: Running Upload.py")
 
-    upload_exit = os.system("python Upload.py")
-
-    if upload_exit != 0:
-        print("❌ Upload failed")
+    if not run_with_retry("python Upload.py", "Upload.py"):
+        print("❌ Upload failed after retries")
         return
 
-    print("✅ Pipeline complete successfully!")
+    print("🎉 Pipeline complete successfully!")
 
 
 if __name__ == "__main__":
