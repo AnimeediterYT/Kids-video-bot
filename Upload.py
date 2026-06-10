@@ -8,7 +8,7 @@ MARKER_FILE = "first_run_done.txt"
 
 
 # ----------------------------
-# SAFE KEY LOADER (CLEAR DEBUG)
+# ENV LOADER (SAFE DEBUG)
 # ----------------------------
 def get_env(name):
     value = os.environ.get(name)
@@ -18,7 +18,7 @@ def get_env(name):
 
 
 # ----------------------------
-# YOUTUBE SERVICE BUILDER
+# YOUTUBE SERVICE BUILDER (SAFE + ZARCHIVER SUPPORT)
 # ----------------------------
 def get_youtube_service():
     client_secrets_env = get_env("YOUTUBE_CLIENT_SECRETS")
@@ -31,12 +31,30 @@ def get_youtube_service():
     try:
         secrets_data = json.loads(client_secrets_env)
 
+        # support ZArchiver raw JSON format
+        if "web" in secrets_data:
+            oauth = secrets_data["web"]
+        elif "installed" in secrets_data:
+            oauth = secrets_data["installed"]
+        else:
+            print("❌ Invalid OAuth format (missing web/installed)")
+            return None
+
+        # strict checks
+        if "client_id" not in oauth:
+            print("❌ Missing client_id in OAuth file")
+            return None
+
+        if "client_secret" not in oauth:
+            print("❌ Missing client_secret in OAuth file")
+            return None
+
         creds = Credentials(
             token=None,
             refresh_token=refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=secrets_data["web"]["client_id"],
-            client_secret=secrets_data["web"]["client_secret"],
+            client_id=oauth["client_id"],
+            client_secret=oauth["client_secret"],
         )
 
         return build("youtube", "v3", credentials=creds)
@@ -47,7 +65,7 @@ def get_youtube_service():
 
 
 # ----------------------------
-# SAFE PURGE (DISABLED SAFELY)
+# SAFE PURGE
 # ----------------------------
 def purge_channel_videos_once(youtube):
     if youtube is None:
@@ -74,8 +92,8 @@ def purge_channel_videos_once(youtube):
         ).execute()
 
         for item in playlist.get("items", []):
-            video_id = item["snippet"]["resourceId"]["videoId"]
-            # SAFE MODE ONLY (no delete)
+            _ = item["snippet"]["resourceId"]["videoId"]
+            # SAFE MODE ONLY
 
         open(MARKER_FILE, "w").write("done")
 
@@ -84,25 +102,26 @@ def purge_channel_videos_once(youtube):
 
 
 # ----------------------------
-# UPLOAD FUNCTION (ROBUST)
+# UPLOAD FUNCTION
 # ----------------------------
-def upload_shorts(youtube, video_path, title):
+def upload_shorts(youtube, video_path, matchup_title):
 
     if youtube is None:
-        print("❌ Upload blocked (no YouTube connection)")
+        print("❌ Upload skipped (no YouTube connection)")
         return None
 
     if not os.path.exists(video_path):
-        print("❌ Video missing:", video_path)
+        print("❌ Video file not found:", video_path)
         return None
 
-    print("📤 Uploading video...")
+    video_title = f"{matchup_title} - WHO WINS? #shorts"
+    video_description = f"{matchup_title} anime battle #shorts"
 
     body = {
         "snippet": {
-            "title": (title + " - WHO WINS? #shorts")[:100],
-            "description": (title + " anime battle #shorts")[:200],
-            "tags": ["anime", "shorts", "battle"],
+            "title": video_title[:100],
+            "description": video_description[:100],
+            "tags": ["anime", "shorts", "vs"],
             "categoryId": "1",
         },
         "status": {
@@ -124,7 +143,7 @@ def upload_shorts(youtube, video_path, title):
         while response is None:
             status, response = request.next_chunk()
 
-        print(f"✅ UPLOADED SUCCESSFULLY: {response['id']}")
+        print(f"✅ Uploaded: {response['id']}")
         return response["id"]
 
     except Exception as e:
@@ -133,11 +152,9 @@ def upload_shorts(youtube, video_path, title):
 
 
 # ----------------------------
-# MAIN PIPELINE
+# MAIN
 # ----------------------------
 if __name__ == "__main__":
-
-    print("🚀 UPLOAD MODULE STARTED")
 
     youtube = get_youtube_service()
 
@@ -145,22 +162,18 @@ if __name__ == "__main__":
 
     purge_channel_videos_once(youtube)
 
-    # LOAD TITLE SAFE
-    try:
-        if os.path.exists("current_matchup.json"):
-            with open("current_matchup.json", "r") as f:
-                title = json.load(f).get("title", "Anime Battle")
-        else:
-            title = "Anime Battle"
-    except:
+    if os.path.exists("current_matchup.json"):
+        with open("current_matchup.json", "r") as f:
+            title = json.load(f).get("title", "Anime Battle")
+    else:
         title = "Anime Battle"
 
-    # DECISION LOGIC (CLEAR OUTPUT)
     if youtube and os.path.exists(video_file):
         upload_shorts(youtube, video_file, title)
-    elif not youtube:
-        print("⚠️ Upload skipped: missing YouTube authentication")
-    elif not os.path.exists(video_file):
-        print("❌ Upload skipped: video file missing")
+    else:
+        if not youtube:
+            print("⚠️ Upload skipped: missing YouTube authentication")
+        if not os.path.exists(video_file):
+            print("❌ Upload skipped: video file missing")
 
-    print("🎬 UPLOAD MODULE FINISHED")
+    print("🎬 Upload step finished (safe mode active)")
