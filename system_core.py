@@ -89,14 +89,16 @@ def get_top_items(memory_key, limit=10):
 # =============================
 # INTELLIGENCE FEED
 # =============================
-def get_intelligence():
+ def get_intelligence():
+    state = load_state()
+
     return {
-    "hooks": state.get("best_hooks", []),
-    "titles": state.get("best_titles", []),
-    "characters": state.get("best_characters", []),
-    "scenarios": state.get("best_scenarios", []),
-    "uploaded_videos": state.get("uploaded_videos", []),
-    "video_urls": state.get("video_urls", [])
+        "hooks": state.get("best_hooks", []),
+        "titles": state.get("best_titles", []),
+        "characters": state.get("best_characters", []),
+        "scenarios": state.get("best_scenarios", []),
+        "uploaded_videos": state.get("uploaded_videos", []),
+        "video_urls": state.get("video_urls", [])
     }
 
 
