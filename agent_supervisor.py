@@ -25,14 +25,6 @@ SCENARIOS = [
     "Hidden Power Awakening Clash"
 ]
 
-HOOKS = [
-    "WHO WINS THIS?!",
-    "THIS IS INSANE!",
-    "YOU WON’T EXPECT THIS!",
-    "REALITY IS BREAKING!",
-    "STRONGEST FIGHT EVER!"
-]
-
 ACTIONS = [
     "awakens god power",
     "breaks all limits",
@@ -51,10 +43,10 @@ CLIMAX = [
 
 
 # =============================
-# TITLE ENGINE (UPGRADED)
+# TITLE ENGINE (UNCHANGED)
 # =============================
 def make_title(c1, c2, scenario):
-    candidates = [
+    styles = [
         f"{c1} vs {c2} - {scenario}",
         f"🔥 {c1} vs {c2} | {scenario}",
         f"{c1} ⚡ VS ⚡ {c2} - Ultimate Battle",
@@ -64,28 +56,56 @@ def make_title(c1, c2, scenario):
         f"{c1} vs {c2} - FINAL FORM SHOWDOWN",
         f"UNSTOPPABLE WAR: {c1} vs {c2}"
     ]
+    return random.choice(styles)
 
-    def score(title: str) -> int:
+
+# =============================
+# HOOK RETENTION SYSTEM (UPGRADED)
+# =============================
+def build_hook(c1, c2, scenario):
+    hooks = [
+        f"WHO WINS THIS?! {c1} vs {c2} 😱",
+        f"{c1} VS {c2} — THIS IS NOT NORMAL...",
+        f"THE STRONGEST FIGHT BEGINS: {c1} vs {c2}",
+        f"{c1} vs {c2} JUST BROKE REALITY 💥",
+        f"NO ONE EXPECTED THIS MATCHUP: {c1} vs {c2}",
+        f"THIS BATTLE IS ILLEGAL LEVEL: {c1} vs {c2}",
+        f"{c1} vs {c2} — FINAL FORM COLLISION",
+        f"WHAT HAPPENS WHEN {c1} FIGHTS {c2}?"
+    ]
+
+    def score(h):
         s = 0
-        if "vs" in title.lower():
+
+        # emotional trigger
+        if "WHO" in h or "WHAT" in h:
             s += 2
-        if "🔥" in title or "⚡" in title:
+
+        # confrontation boost
+        if "vs" in h.lower():
             s += 2
-        if "?" in title:
+
+        # intensity symbols
+        if "🔥" in h or "💥" in h or "😱" in h:
+            s += 2
+
+        # urgency words
+        if "FINAL" in h.upper() or "BROKE" in h.upper():
             s += 1
-        if len(title) < 60:
-            s += 1
-        if "FINAL" in title.upper() or "INSANE" in title.upper():
-            s += 1
+
+        # character presence
+        if c1 in h and c2 in h:
+            s += 2
+
         return s
 
-    scored = [(t, score(t)) for t in candidates]
+    scored = [(h, score(h)) for h in hooks]
     scored.sort(key=lambda x: x[1], reverse=True)
 
-    top_score = scored[0][1]
-    top_titles = [t for t, s in scored if s == top_score]
+    best_score = scored[0][1]
+    best_hooks = [h for h, s in scored if s == best_score]
 
-    return random.choice(top_titles)
+    return random.choice(best_hooks)
 
 
 # =============================
@@ -115,7 +135,7 @@ def make_description(c1, c2, scenario):
 # =============================
 def build_script(c1, c2, scenario):
     return [
-        random.choice(HOOKS),
+        build_hook(c1, c2, scenario),
         f"{c1} enters the battlefield...",
         f"{c2} prepares for impact...",
         f"SCENARIO: {scenario}",
@@ -142,17 +162,15 @@ def pick():
 # =============================
 # VIRAL SCORE
 # =============================
-def viral_score(title, script):
+def viral_score(script):
     score = 0
 
-    if "vs" in title.lower():
-        score += 2
-    if "🔥" in title or "⚡" in title:
-        score += 2
     if len(script) >= 7:
         score += 1
     if any("FINAL" in s.upper() for s in script):
         score += 2
+    if "BREAKS" in " ".join(script).upper():
+        score += 1
 
     return score
 
@@ -168,7 +186,7 @@ def generate():
     description = make_description(c1, c2, scenario)
     script = build_script(c1, c2, scenario)
 
-    score = viral_score(title, script)
+    score = viral_score(script)
 
     data = {
         "title": title,
@@ -187,7 +205,8 @@ def generate():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    print("✅ GENERATED TITLE:", title)
+    print("🚀 GENERATED TITLE:", title)
+    print("🔥 HOOK:", script[0])
     print("📊 VIRAL SCORE:", score)
 
 
