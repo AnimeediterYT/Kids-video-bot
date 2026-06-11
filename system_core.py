@@ -167,16 +167,26 @@ def get_trend_signal():
 # CONTENT SIGNAL
 # =============================
 def get_signal():
-    trend = get_trend_signal()
+    state = load_state()
 
-    if trend == "TRENDING_UP":
+    videos = state.get("uploaded_videos", [])
+
+    if len(videos) < 5:
+        return "LEARNING_PHASE"
+
+    scores = [v.get("score", 0) for v in videos]
+
+    if not scores:
+        return "LEARNING_PHASE"
+
+    avg = sum(scores) / len(scores)
+    best = max(scores)
+
+    if best > avg * 1.5:
         return "STRONG_WINNERS"
 
-    if trend == "TRENDING_DOWN":
+    if avg < 100:
         return "WEAK_CONTENT"
-
-    if trend == "LEARNING_PHASE":
-        return "LEARNING_PHASE"
 
     return "STABLE"
 
