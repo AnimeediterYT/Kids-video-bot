@@ -36,18 +36,30 @@ SCENARIOS = [
 # =============================
 def pick():
     memory = get_intelligence()
+    best_video = get_best_video()
 
     # bias toward learned best characters if available
     if best_video:
-    learned_chars = [best_video.get("characters", [])]
-else:
-    learned_chars = memory.get("characters", [])
+        learned_chars = best_video.get("characters", [])
+    else:
+        learned_chars = memory.get("characters", [])
+
     if learned_chars:
-        flat = [c for pair in learned_chars for c in pair if c]
+        # flatten safely
+        flat = []
+        for item in learned_chars:
+            if isinstance(item, list):
+                flat.extend(item)
+            else:
+                flat.append(item)
+
+        flat = [c for c in flat if c]
+
         if len(flat) >= 2:
             c1, c2 = random.sample(flat, 2)
             return c1, c2
 
+    # fallback random
     c1 = random.choice(CHARACTERS)
     c2 = random.choice(CHARACTERS)
 
