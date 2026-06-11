@@ -1,6 +1,11 @@
 import json
 import random
 import os
+from system_core import (
+    get_intelligence,
+    update_memory,
+    get_signal
+)
 
 OUTPUT_FILE = "current_matchup.json"
 
@@ -27,21 +32,37 @@ SCENARIOS = [
 
 
 # =============================
-# PICK SYSTEM
+# PICK SYSTEM (ENHANCED)
 # =============================
 def pick():
+    memory = get_intelligence()
+
+    # bias toward learned best characters if available
+    learned_chars = memory.get("characters", [])
+
+    if learned_chars:
+        flat = [c for pair in learned_chars for c in pair if c]
+        if len(flat) >= 2:
+            c1, c2 = random.sample(flat, 2)
+            return c1, c2
+
     c1 = random.choice(CHARACTERS)
     c2 = random.choice(CHARACTERS)
+
     while c2 == c1:
         c2 = random.choice(CHARACTERS)
+
     return c1, c2
 
 
 # =============================
-# TITLE ENGINE v2
+# TITLE ENGINE (IMPROVED WITH MEMORY)
 # =============================
 def make_title(c1, c2, scenario):
-    candidates = [
+    memory = get_intelligence()
+    best_titles = memory.get("titles", [])
+
+    candidates = best_titles + [
         f"🔥 {c1} vs {c2} | {scenario}",
         f"{c1} ⚡ VS ⚡ {c2} - Ultimate Battle",
         f"WHO IS STRONGER? {c1} or {c2}?",
@@ -57,20 +78,20 @@ def make_title(c1, c2, scenario):
         if "🔥" in t or "⚡" in t: s += 2
         if "?" in t: s += 1
         if len(t) < 60: s += 1
-        if "FINAL" in t.upper() or "INSANE" in t.upper(): s += 1
         return s
 
-    best_score = max(score(t) for t in candidates)
-    best = [t for t in candidates if score(t) == best_score]
-
-    return random.choice(best)
+    best = max(candidates, key=score)
+    return best
 
 
 # =============================
-# HOOK ENGINE v2 (RETENTION CORE)
+# HOOK ENGINE (LEARNING-BASED)
 # =============================
 def build_hook(c1, c2):
-    hooks = [
+    memory = get_intelligence()
+    learned_hooks = memory.get("hooks", [])
+
+    hooks = learned_hooks + [
         f"WHO WINS THIS?! {c1} vs {c2} 💥",
         f"{c1} vs {c2} JUST BROKE REALITY 😱",
         f"NO ONE EXPECTED THIS FIGHT: {c1} vs {c2}",
@@ -83,26 +104,21 @@ def build_hook(c1, c2):
         s = 0
         if "WHO" in h or "WHAT" in h: s += 2
         if "vs" in h.lower(): s += 2
-        if any(x in h for x in ["💥", "🔥", "😱"]): s += 2
         if c1 in h and c2 in h: s += 2
         return s
 
-    best_score = max(score(h) for h in hooks)
-    best = [h for h in hooks if score(h) == best_score]
-
-    return random.choice(best)
+    return max(hooks, key=score)
 
 
 # =============================
-# DESCRIPTION + SEO + HASHTAGS
+# DESCRIPTION
 # =============================
 def make_description(c1, c2, scenario):
-    keywords = f"{c1} vs {c2}, anime battle, what if fight, power scaling, {scenario}"
+    keywords = f"{c1} vs {c2}, anime battle, power scaling, {scenario}"
 
-    desc = f"""
+    return f"""
 🔥 {c1} vs {c2} - EPIC ANIME BATTLE
 
-A what-if scenario where two legendary fighters collide in:
 {scenario}
 
 💥 Power scaling | transformations | ultimate clash
@@ -112,34 +128,31 @@ COMMENT WHO WINS 👇
 {keywords}
 """.strip()
 
-    return desc[:1000]
-
 
 def make_hashtags():
-    base = ["#anime", "#shorts", "#battle", "#vs", "#whatif", "#powerlevels"]
-    return " ".join(base)
+    return "#anime #shorts #battle #vs #whatif #powerlevels"
 
 
 # =============================
-# SCRIPT ENGINE v2 (3-ACT STRUCTURE)
+# SCRIPT ENGINE
 # =============================
 def build_script(c1, c2, scenario):
     hook = build_hook(c1, c2)
 
     return [
-        hook,  # ACT 1
+        hook,
         f"{c1} enters the battlefield...",
         f"{c2} prepares for impact...",
-        f"SCENARIO: {scenario}",  # ACT 2 BUILD
+        f"SCENARIO: {scenario}",
         f"{c1} awakens hidden power...",
         f"{c2} reaches final form...",
-        "THE FINAL CLASH SHATTERS REALITY!",  # ACT 3 CLIMAX
+        "THE FINAL CLASH SHATTERS REALITY!",
         "WHO WINS THIS FIGHT?!"
     ]
 
 
 # =============================
-# VIRAL SCORE v2 (PREDICTIVE)
+# VIRAL SCORE
 # =============================
 def viral_score(title, script, hook):
     score = 0
@@ -148,7 +161,6 @@ def viral_score(title, script, hook):
     if "🔥" in title or "⚡" in title: score += 2
     if "WHO" in hook or "WHAT" in hook: score += 2
     if any("FINAL" in s.upper() for s in script): score += 2
-    if len(script) >= 7: score += 1
 
     return score
 
@@ -158,9 +170,11 @@ def quality_flag(score):
 
 
 # =============================
-# MAIN GENERATOR
+# MAIN GENERATOR (NOW LEARNING-AWARE)
 # =============================
 def generate():
+    signal = get_signal()
+
     c1, c2 = pick()
     scenario = random.choice(SCENARIOS)
 
@@ -182,20 +196,41 @@ def generate():
         "characters": [c1, c2],
         "scenario": scenario,
         "viral_score": score,
-        "quality_flag": quality_flag(score)
+        "quality_flag": quality_flag(score),
+        "signal": signal
     }
 
+    # =============================
+    # SAVE OUTPUT
+    # =============================
     os.makedirs(".", exist_ok=True)
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
+    # =============================
+    # FEEDBACK TO SYSTEM CORE
+    # =============================
+    update_memory("video_memory", {
+        "title": title,
+        "hook": hook,
+        "characters": [c1, c2],
+        "scenario": scenario,
+        "score": score
+    })
+
+    update_memory("best_titles", title)
+    update_memory("best_hooks", hook)
+    update_memory("best_characters", [c1, c2])
+    update_memory("best_scenarios", scenario)
+
     print("🚀 TITLE:", title)
     print("🔥 HOOK:", hook)
     print("📊 SCORE:", score)
+    print("📡 SIGNAL:", signal)
     print("📌 QUALITY:", data["quality_flag"])
 
 
 if __name__ == "__main__":
-    print("🚀 CONTENT ENGINE (FULL SYSTEM) RUNNING...")
+    print("🧠 SELF-LEARNING AGENT RUNNING...")
     generate()
