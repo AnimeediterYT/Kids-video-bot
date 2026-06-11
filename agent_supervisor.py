@@ -192,6 +192,14 @@ if best_video and "characters" in best_video:
     scenario = random.choice(SCENARIOS)
 
     title = make_title(c1, c2, scenario)
+
+if best_video and best_video.get("title"):
+    old_title = best_video["title"]
+
+    if "🔥" in old_title and "🔥" not in title:
+        title = "🔥 " + title
+
+    print("🧠 Learning from title:", old_title)
     script = build_script(c1, c2, scenario)
     hook = script[0]
 
