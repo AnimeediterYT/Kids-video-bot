@@ -8,20 +8,18 @@ print("🚀 UPLOAD MODULE STARTED")
 
 
 # ----------------------------
-# ENV CHECKER (CLEAR + SIMPLE)
+# ENV CHECKER
 # ----------------------------
 def get_env(name):
     value = os.environ.get(name)
-
     if not value:
         print(f"⚠️ Missing env: {name}")
         return None
-
     return value
 
 
 # ----------------------------
-# YOUTUBE LOGIN
+# YOUTUBE CLIENT
 # ----------------------------
 def get_youtube():
     client_json = get_env("YOUTUBE_CLIENT_SECRETS")
@@ -50,9 +48,31 @@ def get_youtube():
 
 
 # ----------------------------
+# BUILD SEO METADATA (NEW SAFE LAYER)
+# ----------------------------
+def build_metadata(data):
+    title = data.get("title", "Anime Battle")[:95]
+
+    description = data.get("description", "")
+    script = data.get("script", [])
+
+    hashtags = "#shorts #anime #battle #vs"
+
+    # pinned comment PREPARATION (not auto-posting yet)
+    pinned_comment = f"Who wins this fight? 👇\n{title}"
+
+    return {
+        "title": title + " #shorts",
+        "description": f"{description}\n\n{hashtags}",
+        "tags": ["anime", "shorts", "battle", "whatif"],
+        "pinned_comment": pinned_comment
+    }
+
+
+# ----------------------------
 # UPLOAD VIDEO
 # ----------------------------
-def upload(video_path, title, youtube):
+def upload(video_path, metadata, youtube):
 
     if not youtube:
         print("❌ STOPPED: No YouTube connection")
@@ -65,9 +85,9 @@ def upload(video_path, title, youtube):
     try:
         body = {
             "snippet": {
-                "title": (title + " #shorts")[:100],
-                "description": title[:200],
-                "tags": ["anime", "shorts"],
+                "title": metadata["title"],
+                "description": metadata["description"],
+                "tags": metadata["tags"],
                 "categoryId": "1",
             },
             "status": {
@@ -88,7 +108,12 @@ def upload(video_path, title, youtube):
         while response is None:
             status, response = request.next_chunk()
 
-        print("✅ UPLOAD SUCCESS:", response["id"])
+        video_id = response.get("id")
+        print("✅ UPLOAD SUCCESS:", video_id)
+
+        # NOTE: pinned comment NOT executed yet (safe roadmap stage)
+        print("📌 PINNED COMMENT READY:", metadata["pinned_comment"])
+
         return True
 
     except Exception as e:
@@ -105,18 +130,18 @@ if __name__ == "__main__":
 
     youtube = get_youtube()
 
-    # load title safely
     try:
         if os.path.exists("current_matchup.json"):
-            with open("current_matchup.json", "r") as f:
-                title = json.load(f).get("title", "Anime Battle")
+            with open("current_matchup.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
         else:
-            title = "Anime Battle"
+            data = {}
     except:
-        title = "Anime Battle"
+        data = {}
 
-    # FINAL DECISION
-    success = upload(video_file, title, youtube)
+    metadata = build_metadata(data)
+
+    success = upload(video_file, metadata, youtube)
 
     if not success:
         print("❌ UPLOAD FAILED (NO FAKE SUCCESS)")
