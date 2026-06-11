@@ -195,3 +195,14 @@ if __name__ == "__main__":
         exit(1)
 
     print("🎬 UPLOAD MODULE FINISHED (AI SYSTEM ACTIVE)")
+if __name__ == "__main__":
+    youtube = get_youtube()
+
+    video_id = "qcK2XCnGYxw"
+
+    response = youtube.videos().list(
+        part="statistics",
+        id=video_id
+    ).execute()
+
+    print(response)
