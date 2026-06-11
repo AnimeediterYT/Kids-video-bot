@@ -217,7 +217,11 @@ set_value(
     f"https://youtube.com/watch?v={video_id}"
 )
 video_url = f"https://www.youtube.com/watch?v={video_id}"
-
+# Analytics snapshot
+fetch_video_stats(
+    youtube,
+    video_id
+)
 update_memory("video_urls", {
     "video_id": video_id,
     "url": video_url,
