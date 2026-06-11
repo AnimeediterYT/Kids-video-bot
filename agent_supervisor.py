@@ -6,7 +6,7 @@ OUTPUT_FILE = "current_matchup.json"
 
 
 # =============================
-# CHARACTER UNIVERSE (EXPANDABLE)
+# CHARACTER UNIVERSE
 # =============================
 CHARACTERS = [
     "Goku", "Vegeta", "Gohan", "Broly", "Frieza",
@@ -15,7 +15,6 @@ CHARACTERS = [
     "Ichigo", "Aizen", "Gojo", "Sukuna",
     "Tanjiro", "Muzan", "Saitama", "Killua"
 ]
-
 
 SCENARIOS = [
     "What If Battle in Alternate Universe",
@@ -26,7 +25,6 @@ SCENARIOS = [
     "Hidden Power Awakening Clash"
 ]
 
-
 HOOKS = [
     "WHO WINS THIS?!",
     "THIS IS INSANE!",
@@ -35,7 +33,6 @@ HOOKS = [
     "STRONGEST FIGHT EVER!"
 ]
 
-
 ACTIONS = [
     "awakens god power",
     "breaks all limits",
@@ -43,7 +40,6 @@ ACTIONS = [
     "loses control of energy",
     "reaches ultimate evolution"
 ]
-
 
 CLIMAX = [
     "THE FINAL CLASH SHATTERS REALITY!",
@@ -55,7 +51,7 @@ CLIMAX = [
 
 
 # =============================
-# TITLE ENGINE (INFINITE STYLE)
+# TITLE ENGINE
 # =============================
 def make_title(c1, c2, scenario):
     styles = [
@@ -69,7 +65,7 @@ def make_title(c1, c2, scenario):
 
 
 # =============================
-# DESCRIPTION ENGINE (150+ CHAR SAFE)
+# DESCRIPTION ENGINE
 # =============================
 def make_description(c1, c2, scenario):
     templates = [
@@ -84,11 +80,10 @@ def make_description(c1, c2, scenario):
 
     desc = random.choice(templates)
 
-    # guarantee 150+ chars (safe YouTube style)
     while len(desc) < 150:
         desc += " Watch till the end to see the result!"
 
-    return desc[:500]  # safe limit
+    return desc[:500]
 
 
 # =============================
@@ -121,6 +116,24 @@ def pick():
 
 
 # =============================
+# VIRAL SCORE (INTERNAL ONLY)
+# =============================
+def viral_score(title, script):
+    score = 0
+
+    if "vs" in title.lower():
+        score += 2
+    if "🔥" in title or "⚡" in title:
+        score += 2
+    if len(script) >= 7:
+        score += 1
+    if any("FINAL" in s.upper() for s in script):
+        score += 2
+
+    return score
+
+
+# =============================
 # MAIN GENERATOR
 # =============================
 def generate():
@@ -131,10 +144,19 @@ def generate():
     description = make_description(c1, c2, scenario)
     script = build_script(c1, c2, scenario)
 
+    score = viral_score(title, script)
+
     data = {
+        # CORE PIPELINE (UNCHANGED)
         "title": title,
         "description": description,
-        "script": script
+        "script": script,
+
+        # SAFE ADD-ONS (DO NOT BREAK PIPELINE)
+        "characters": [c1, c2],
+        "scenario": scenario,
+        "hook": script[0] if script else "",
+        "viral_score": score
     }
 
     os.makedirs(".", exist_ok=True)
@@ -143,7 +165,7 @@ def generate():
         json.dump(data, f, indent=2)
 
     print("✅ GENERATED TITLE:", title)
-    print("📝 DESCRIPTION LENGTH:", len(description))
+    print("📊 VIRAL SCORE:", score)
 
 
 # =============================
