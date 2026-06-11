@@ -25,126 +25,6 @@ SCENARIOS = [
     "Hidden Power Awakening Clash"
 ]
 
-ACTIONS = [
-    "awakens god power",
-    "breaks all limits",
-    "enters final form",
-    "loses control of energy",
-    "reaches ultimate evolution"
-]
-
-CLIMAX = [
-    "THE FINAL CLASH SHATTERS REALITY!",
-    "ONLY ONE SURVIVES THIS BATTLE!",
-    "POWER LEVELS REACH BEYOND LIMITS!",
-    "THE UNIVERSE STARTS COLLAPSING!",
-    "VICTORY DECIDED IN ONE MOMENT!"
-]
-
-
-# =============================
-# TITLE ENGINE (UNCHANGED)
-# =============================
-def make_title(c1, c2, scenario):
-    styles = [
-        f"{c1} vs {c2} - {scenario}",
-        f"🔥 {c1} vs {c2} | {scenario}",
-        f"{c1} ⚡ VS ⚡ {c2} - Ultimate Battle",
-        f"WHO IS STRONGER? {c1} or {c2}?",
-        f"{c1} vs {c2} - No Limits Fight",
-        f"INSANE FIGHT: {c1} vs {c2}",
-        f"{c1} vs {c2} - FINAL FORM SHOWDOWN",
-        f"UNSTOPPABLE WAR: {c1} vs {c2}"
-    ]
-    return random.choice(styles)
-
-
-# =============================
-# HOOK RETENTION SYSTEM (UPGRADED)
-# =============================
-def build_hook(c1, c2, scenario):
-    hooks = [
-        f"WHO WINS THIS?! {c1} vs {c2} 😱",
-        f"{c1} VS {c2} — THIS IS NOT NORMAL...",
-        f"THE STRONGEST FIGHT BEGINS: {c1} vs {c2}",
-        f"{c1} vs {c2} JUST BROKE REALITY 💥",
-        f"NO ONE EXPECTED THIS MATCHUP: {c1} vs {c2}",
-        f"THIS BATTLE IS ILLEGAL LEVEL: {c1} vs {c2}",
-        f"{c1} vs {c2} — FINAL FORM COLLISION",
-        f"WHAT HAPPENS WHEN {c1} FIGHTS {c2}?"
-    ]
-
-    def score(h):
-        s = 0
-
-        # emotional trigger
-        if "WHO" in h or "WHAT" in h:
-            s += 2
-
-        # confrontation boost
-        if "vs" in h.lower():
-            s += 2
-
-        # intensity symbols
-        if "🔥" in h or "💥" in h or "😱" in h:
-            s += 2
-
-        # urgency words
-        if "FINAL" in h.upper() or "BROKE" in h.upper():
-            s += 1
-
-        # character presence
-        if c1 in h and c2 in h:
-            s += 2
-
-        return s
-
-    scored = [(h, score(h)) for h in hooks]
-    scored.sort(key=lambda x: x[1], reverse=True)
-
-    best_score = scored[0][1]
-    best_hooks = [h for h, s in scored if s == best_score]
-
-    return random.choice(best_hooks)
-
-
-# =============================
-# DESCRIPTION ENGINE
-# =============================
-def make_description(c1, c2, scenario):
-    templates = [
-        f"Watch the ultimate battle between {c1} and {c2} in {scenario}. "
-        f"This is a fan-made concept fight exploring power levels, abilities, and what-if scenarios. "
-        f"Who will dominate this clash of legends?",
-
-        f"{c1} vs {c2} in an insane {scenario}. "
-        f"This short explores a hypothetical fight between two powerful characters. "
-        f"Experience the intensity and decide the winner yourself!"
-    ]
-
-    desc = random.choice(templates)
-
-    while len(desc) < 150:
-        desc += " Watch till the end to see the result!"
-
-    return desc[:500]
-
-
-# =============================
-# STORY ENGINE
-# =============================
-def build_script(c1, c2, scenario):
-    return [
-        build_hook(c1, c2, scenario),
-        f"{c1} enters the battlefield...",
-        f"{c2} prepares for impact...",
-        f"SCENARIO: {scenario}",
-        f"{c1} {random.choice(ACTIONS)}",
-        f"{c2} {random.choice(ACTIONS)}",
-        random.choice(CLIMAX),
-        "WHO WINS THIS FIGHT?!"
-    ]
-
 
 # =============================
 # PICK CHARACTERS
@@ -160,18 +40,144 @@ def pick():
 
 
 # =============================
-# VIRAL SCORE
+# TITLE ENGINE (VIRAL SYSTEM)
+# =============================
+def make_title(c1, c2, scenario):
+    candidates = [
+        f"{c1} vs {c2} - {scenario}",
+        f"🔥 {c1} vs {c2} | {scenario}",
+        f"{c1} ⚡ VS ⚡ {c2} - Ultimate Battle",
+        f"WHO IS STRONGER? {c1} or {c2}?",
+        f"{c1} vs {c2} - No Limits Fight",
+        f"INSANE FIGHT: {c1} vs {c2}",
+        f"{c1} vs {c2} - FINAL FORM SHOWDOWN",
+        f"UNSTOPPABLE WAR: {c1} vs {c2}",
+        f"{c1} vs {c2} - BREAKS REALITY 💥",
+        f"LEGENDARY CLASH: {c1} vs {c2}"
+    ]
+
+    def score(t):
+        s = 0
+        if "vs" in t.lower():
+            s += 2
+        if "🔥" in t or "⚡" in t:
+            s += 2
+        if "?" in t:
+            s += 1
+        if len(t) < 60:
+            s += 1
+        if "FINAL" in t.upper() or "INSANE" in t.upper():
+            s += 1
+        return s
+
+    scored = [(t, score(t)) for t in candidates]
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    best = scored[0][1]
+    best_titles = [t for t, s in scored if s == best]
+
+    return random.choice(best_titles)
+
+
+# =============================
+# HOOK ENGINE (RETENTION OPTIMIZED)
+# =============================
+def build_hook(c1, c2):
+    hooks = [
+        f"WHO WINS THIS?! {c1} vs {c2} 💥",
+        f"{c1} VS {c2} — THIS IS NOT POSSIBLE...",
+        f"THE STRONGEST FIGHT EVER: {c1} vs {c2}",
+        f"{c1} vs {c2} JUST BROKE REALITY 😱",
+        f"NO ONE EXPECTED THIS: {c1} vs {c2}",
+        f"WHAT HAPPENS WHEN {c1} FIGHTS {c2}?",
+        f"THIS BATTLE DEFIES LOGIC: {c1} vs {c2}"
+    ]
+
+    def score(h):
+        s = 0
+        if "WHO" in h or "WHAT" in h:
+            s += 2
+        if "vs" in h.lower():
+            s += 2
+        if any(x in h for x in ["💥", "🔥", "😱"]):
+            s += 2
+        if c1 in h and c2 in h:
+            s += 2
+        return s
+
+    scored = [(h, score(h)) for h in hooks]
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    top = scored[0][1]
+    best = [h for h, s in scored if s == top]
+
+    return random.choice(best)
+
+
+# =============================
+# DESCRIPTION ENGINE (SEO OPTIMIZED)
+# =============================
+def make_description(c1, c2, scenario):
+    keywords = f"{c1} vs {c2}, anime battle, what if fight, power scaling, {scenario}"
+
+    templates = [
+        f"""🔥 EPIC ANIME BATTLE
+
+{c1} vs {c2} in a {scenario}.
+
+This is a fan-made what-if battle exploring power levels, transformations, and ultimate abilities.
+
+💥 COMMENT WHO WINS
+⚡ SUBSCRIBE FOR MORE BATTLES
+
+#Anime #Battle #VS #WhatIf #Shorts""",
+
+        f"""{c1} vs {c2} — Ultimate Fight
+
+A legendary what-if scenario where {c1} faces {c2}.
+
+This video explores hypothetical power scaling and battle outcomes.
+
+{keywords}
+
+👇 Who wins this fight?"""
+    ]
+
+    desc = random.choice(templates).strip()
+
+    if len(desc) < 250:
+        desc += f"\n\n{keywords}"
+
+    return desc[:1000]
+
+
+# =============================
+# STORY ENGINE
+# =============================
+def build_script(c1, c2, scenario):
+    return [
+        build_hook(c1, c2),
+        f"{c1} enters the battlefield...",
+        f"{c2} prepares for impact...",
+        f"SCENARIO: {scenario}",
+        f"{c1} awakens hidden power...",
+        f"{c2} enters final form...",
+        "THE FINAL CLASH SHATTERS REALITY!",
+        "WHO WINS THIS FIGHT?!"
+    ]
+
+
+# =============================
+# VIRAL SCORE SYSTEM
 # =============================
 def viral_score(script):
     score = 0
-
-    if len(script) >= 7:
-        score += 1
     if any("FINAL" in s.upper() for s in script):
         score += 2
-    if "BREAKS" in " ".join(script).upper():
+    if any("POWER" in s.upper() for s in script):
         score += 1
-
+    if len(script) >= 7:
+        score += 1
     return score
 
 
@@ -192,11 +198,9 @@ def generate():
         "title": title,
         "description": description,
         "script": script,
-
-        # SAFE ADDITIONS
         "characters": [c1, c2],
         "scenario": scenario,
-        "hook": script[0] if script else "",
+        "hook": script[0],
         "viral_score": score
     }
 
@@ -205,14 +209,11 @@ def generate():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    print("🚀 GENERATED TITLE:", title)
+    print("🚀 TITLE:", title)
     print("🔥 HOOK:", script[0])
-    print("📊 VIRAL SCORE:", score)
+    print("📊 SCORE:", score)
 
 
-# =============================
-# RUN
-# =============================
 if __name__ == "__main__":
     print("🚀 CONTENT ENGINE RUNNING...")
     generate()
