@@ -1,32 +1,32 @@
 import os
 import json
+import time
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-print("🚀 UPLOAD MODULE STARTED")
+print("🚀 UPLOAD MODULE STARTED (PHASE COMPLETE)")
 
 
-# ----------------------------
-# ENV CHECKER
-# ----------------------------
+# =============================
+# ENV LOADER
+# =============================
 def get_env(name):
     value = os.environ.get(name)
     if not value:
         print(f"⚠️ Missing env: {name}")
-        return None
     return value
 
 
-# ----------------------------
+# =============================
 # YOUTUBE CLIENT
-# ----------------------------
+# =============================
 def get_youtube():
     client_json = get_env("YOUTUBE_CLIENT_SECRETS")
     refresh_token = get_env("YOUTUBE_REFRESH_TOKEN")
 
     if not client_json or not refresh_token:
-        print("❌ Upload BLOCKED: Missing YouTube authentication")
+        print("❌ Upload BLOCKED: Missing YouTube credentials")
         return None
 
     try:
@@ -47,31 +47,58 @@ def get_youtube():
         return None
 
 
-# ----------------------------
-# BUILD SEO METADATA (NEW SAFE LAYER)
-# ----------------------------
+# =============================
+# LOAD DATA SAFE
+# =============================
+def load_data():
+    try:
+        with open("current_matchup.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print("⚠️ JSON LOAD FAILED:", e)
+        return {}
+
+
+# =============================
+# BUILD METADATA (PHASE COMPLETE)
+# =============================
 def build_metadata(data):
     title = data.get("title", "Anime Battle")[:95]
 
-    description = data.get("description", "")
+    description = data.get("description", "Anime battle shorts")
+    hashtags = data.get("hashtags", "#anime #shorts #battle #vs #whatif")
+
     script = data.get("script", [])
 
-    hashtags = "#shorts #anime #battle #vs"
+    # safety enrichment
+    if "#shorts" not in title.lower():
+        title = title + " #shorts"
 
-    # pinned comment PREPARATION (not auto-posting yet)
-    pinned_comment = f"Who wins this fight? 👇\n{title}"
+    full_description = f"""
+{description}
+
+{hashtags}
+
+🔥 What if anime battle scenario
+⚡ Power scaling fight simulation
+💥 Who wins? Comment below!
+
+#anime #shorts
+""".strip()
+
+    pinned_comment = f"👇 Who wins this fight?\n{title}"
 
     return {
-        "title": title + " #shorts",
-        "description": f"{description}\n\n{hashtags}",
-        "tags": ["anime", "shorts", "battle", "whatif"],
+        "title": title,
+        "description": full_description[:5000],
+        "tags": ["anime", "shorts", "battle", "vs", "whatif"],
         "pinned_comment": pinned_comment
     }
 
 
-# ----------------------------
-# UPLOAD VIDEO
-# ----------------------------
+# =============================
+# UPLOAD FUNCTION
+# =============================
 def upload(video_path, metadata, youtube):
 
     if not youtube:
@@ -79,7 +106,7 @@ def upload(video_path, metadata, youtube):
         return False
 
     if not os.path.exists(video_path):
-        print("❌ STOPPED: Video file not found")
+        print("❌ STOPPED: Video file missing")
         return False
 
     try:
@@ -105,13 +132,24 @@ def upload(video_path, metadata, youtube):
         )
 
         response = None
-        while response is None:
-            status, response = request.next_chunk()
+        retry = 0
+
+        while response is None and retry < 10:
+            try:
+                status, response = request.next_chunk()
+            except Exception as e:
+                print("⚠️ Upload chunk error:", e)
+                retry += 1
+                time.sleep(2)
+
+        if not response:
+            print("❌ UPLOAD FAILED AFTER RETRIES")
+            return False
 
         video_id = response.get("id")
         print("✅ UPLOAD SUCCESS:", video_id)
 
-        # NOTE: pinned comment NOT executed yet (safe roadmap stage)
+        # future phase hook (NOT ACTIVE YET)
         print("📌 PINNED COMMENT READY:", metadata["pinned_comment"])
 
         return True
@@ -121,23 +159,15 @@ def upload(video_path, metadata, youtube):
         return False
 
 
-# ----------------------------
+# =============================
 # MAIN
-# ----------------------------
+# =============================
 if __name__ == "__main__":
 
     video_file = "output/output_video.mp4"
 
     youtube = get_youtube()
-
-    try:
-        if os.path.exists("current_matchup.json"):
-            with open("current_matchup.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-        else:
-            data = {}
-    except:
-        data = {}
+    data = load_data()
 
     metadata = build_metadata(data)
 
@@ -147,4 +177,4 @@ if __name__ == "__main__":
         print("❌ UPLOAD FAILED (NO FAKE SUCCESS)")
         exit(1)
 
-    print("🎬 UPLOAD MODULE FINISHED")
+    print("🎬 UPLOAD MODULE FINISHED (PHASE COMPLETE)")
