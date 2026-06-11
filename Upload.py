@@ -63,29 +63,22 @@ def load_data():
 
 
 # =============================
-# GROWTH METADATA ENGINE (IMPROVED)
+# GROWTH METADATA ENGINE
 # =============================
 def build_metadata(data):
     signal = get_signal()
     memory = get_intelligence()
 
     title = data.get("title", "Anime Battle")
-
     description = data.get("description", "")
     hashtags = data.get("hashtags", "#anime #shorts #battle #vs #whatif")
 
-    # -----------------------------
-    # CTR OPTIMIZATION
-    # -----------------------------
     if "🔥" not in title:
         title = "🔥 " + title
 
     if "#shorts" not in title.lower():
         title += " #shorts"
 
-    # -----------------------------
-    # MEMORY BOOST (TOP PATTERNS)
-    # -----------------------------
     if signal == "STRONG_WINNERS":
         title = title.upper() if len(title) < 80 else title
 
@@ -165,9 +158,6 @@ def upload(video_path, metadata, youtube):
         video_id = response.get("id")
         print("✅ UPLOAD SUCCESS:", video_id)
 
-        # =============================
-        # FEEDBACK LOOP (LEARNING)
-        # =============================
         update_memory("uploaded_videos", {
             "video_id": video_id,
             "title": metadata["title"],
@@ -205,16 +195,3 @@ if __name__ == "__main__":
         exit(1)
 
     print("🎬 UPLOAD MODULE FINISHED (AI SYSTEM ACTIVE)")
-# TEMP TEST - REMOVE AFTER CHECK
-
-if __name__ == "__main__":
-    youtube = get_youtube()
-
-    video_id = "https://youtube.com/shorts/qcK2XCnGYxw?si=Q-5WLmWoeXeEVyCr"
-
-    response = youtube.videos().list(
-        part="statistics",
-        id=video_id
-    ).execute()
-
-    print(response)
