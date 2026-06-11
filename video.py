@@ -7,7 +7,7 @@ from moviepy.editor import *
 from PIL import Image
 
 # -----------------------------
-# FIX PILLOW COMPATIBILITY
+# PILLOW FIX
 # -----------------------------
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -27,8 +27,8 @@ try:
         data = json.load(f)
 
     title = data.get("title", "Anime Battle")
-    script = data.get("script", ["Battle starts!", "Who wins?!"])
-    hook = data.get("hook", script[0])
+    script = data.get("script", [])
+    hook = data.get("hook", script[0] if script else "WHO WINS?!")
 
 except Exception as e:
     print("⚠️ JSON LOAD FAILED:", e)
@@ -65,7 +65,7 @@ print(f"🎬 Rendering: {c1} vs {c2}")
 
 
 # -----------------------------
-# SAFE IMAGE FETCH (NON-BLOCKING STYLE)
+# IMAGE FETCH (SAFE)
 # -----------------------------
 def fetch_image(name, filename):
     try:
@@ -73,8 +73,8 @@ def fetch_image(name, filename):
         with DDGS() as ddgs:
             results = list(ddgs.images(f"{name} anime wallpaper", max_results=1))
             if results:
-                img_url = results[0]["image"]
-                img = requests.get(img_url, timeout=5)
+                url = results[0]["image"]
+                img = requests.get(url, timeout=5)
 
                 if img.status_code == 200:
                     with open(filename, "wb") as f:
@@ -93,7 +93,7 @@ img2 = fetch_image(c2, "char2.jpg")
 # BASE BACKGROUND
 # -----------------------------
 clips = [
-    ColorClip((1080, 1920), color=(10, 10, 10)).set_duration(duration)
+    ColorClip((1080, 1920), color=(8, 8, 8)).set_duration(duration)
 ]
 
 
@@ -121,11 +121,11 @@ clips.append(
 
 
 # -----------------------------
-# VS TEXT (CENTER LAYER)
+# VS CENTER ELEMENT
 # -----------------------------
 try:
     clips.append(
-        TextClip("VS", fontsize=120, color="red")
+        TextClip("VS", fontsize=130, color="red")
         .set_duration(duration)
         .set_position("center")
     )
@@ -134,7 +134,7 @@ except:
 
 
 # -----------------------------
-# 🔥 HOOK-FIRST RETENTION LAYER
+# 🔥 HOOK PRIORITY LAYER (FIRST 2s VISUAL DOMINANCE)
 # -----------------------------
 try:
     clips.append(
@@ -146,7 +146,7 @@ try:
             size=(1000, None)
         )
         .set_start(0)
-        .set_duration(min(2, duration * 0.25))  # FIRST 2 SECONDS FOCUS
+        .set_duration(min(2, duration * 0.3))
         .set_position(("center", 200))
     )
 except:
@@ -154,17 +154,15 @@ except:
 
 
 # -----------------------------
-# SUBTITLE ENGINE (RETENTION TIMED)
+# SUBTITLES (RETENTION TIMED)
 # -----------------------------
 if not script:
     script = [hook, "Battle starts!", "Who wins?!"]
 
-# keep hook OUT of repeated subtitles
-body_script = script[1:] if len(script) > 1 else script
+body = script[1:] if len(script) > 1 else script
+step = duration / max(len(body), 1)
 
-step = duration / max(len(body_script), 1)
-
-for i, line in enumerate(body_script):
+for i, line in enumerate(body):
     try:
         clips.append(
             TextClip(
@@ -183,7 +181,7 @@ for i, line in enumerate(body_script):
 
 
 # -----------------------------
-# FINAL RENDER SAFE
+# FINAL RENDER (STABLE)
 # -----------------------------
 try:
     final = CompositeVideoClip(clips)
