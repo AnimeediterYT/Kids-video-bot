@@ -91,11 +91,12 @@ def get_top_items(memory_key, limit=10):
 # =============================
 def get_intelligence():
     return {
-        "hooks": get_top_items("best_hooks"),
-        "titles": get_top_items("best_titles"),
-        "characters": get_top_items("best_characters"),
-        "scenarios": get_top_items("best_scenarios"),
-        "signals": get_value("analytics_signals", []),
+    "hooks": state.get("best_hooks", []),
+    "titles": state.get("best_titles", []),
+    "characters": state.get("best_characters", []),
+    "scenarios": state.get("best_scenarios", []),
+    "uploaded_videos": state.get("uploaded_videos", []),
+    "video_urls": state.get("video_urls", [])
     }
 
 
