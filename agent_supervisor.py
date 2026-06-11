@@ -1,11 +1,14 @@
 import json
 import random
 import os
+
 from system_core import (
     get_intelligence,
     update_memory,
-    get_signal
+    get_signal,
+    get_best_video
 )
+
 OUTPUT_FILE = "current_matchup.json"
 
 
@@ -31,36 +34,19 @@ SCENARIOS = [
 
 
 # =============================
-# PICK SYSTEM (ENHANCED)
+# SAFE PICK SYSTEM (NO CRASH EVER)
 # =============================
-def pick():
+def pick(best_video=None):
     memory = get_intelligence()
-
-    # safe access (never crashes even if system_core changes)
-    best_video = None
-    try:
-        from system_core import get_best_video
-        best_video = none
-    except:
-        best_video = None
 
     learned_chars = []
 
-    # -----------------------------
-    # 1. Try best video memory first
-    # -----------------------------
     if best_video and isinstance(best_video, dict):
         learned_chars = best_video.get("characters", []) or []
 
-    # -----------------------------
-    # 2. fallback to global memory
-    # -----------------------------
     if not learned_chars:
         learned_chars = memory.get("characters", []) or []
 
-    # -----------------------------
-    # 3. flatten safely (NO CRASH EVER)
-    # -----------------------------
     flat = []
     for item in learned_chars:
         if isinstance(item, list):
@@ -70,19 +56,10 @@ def pick():
 
     flat = [c for c in flat if c]
 
-    # -----------------------------
-    # 4. smart pick if enough data
-    # -----------------------------
     if len(flat) >= 2:
-        import random
         c1, c2 = random.sample(flat, 2)
-        if c1 != c2:
-            return c1, c2
+        return c1, c2
 
-    # -----------------------------
-    # 5. absolute fallback (guaranteed safe)
-    # -----------------------------
-    import random
     c1 = random.choice(CHARACTERS)
     c2 = random.choice(CHARACTERS)
 
@@ -93,11 +70,10 @@ def pick():
 
 
 # =============================
-# TITLE ENGINE (IMPROVED WITH MEMORY)
+# TITLE ENGINE
 # =============================
 def make_title(c1, c2, scenario):
     memory = get_intelligence()
-    best_video = get_best_video()
     best_titles = memory.get("titles", [])
 
     candidates = best_titles + [
@@ -118,18 +94,15 @@ def make_title(c1, c2, scenario):
         if len(t) < 60: s += 1
         return s
 
-    best = max(candidates, key=score)
-    return best
+    return max(candidates, key=score)
 
 
 # =============================
-# HOOK ENGINE (LEARNING-BASED)
+# HOOK ENGINE
 # =============================
 def build_hook(c1, c2):
     memory = get_intelligence()
-    learned_hooks = memory.get("hooks", [])
-
-    hooks = learned_hooks + [
+    hooks = memory.get("hooks", []) + [
         f"WHO WINS THIS?! {c1} vs {c2} 💥",
         f"{c1} vs {c2} JUST BROKE REALITY 😱",
         f"NO ONE EXPECTED THIS FIGHT: {c1} vs {c2}",
@@ -138,32 +111,20 @@ def build_hook(c1, c2):
         f"LEGENDARY CLASH BEGINS: {c1} vs {c2}"
     ]
 
-    def score(h):
-        s = 0
-        if "WHO" in h or "WHAT" in h: s += 2
-        if "vs" in h.lower(): s += 2
-        if c1 in h and c2 in h: s += 2
-        return s
-
-    return max(hooks, key=score)
+    return hooks[-1] if hooks else f"{c1} vs {c2} 🔥"
 
 
 # =============================
-# DESCRIPTION
+# CONTENT BUILDERS
 # =============================
 def make_description(c1, c2, scenario):
-    keywords = f"{c1} vs {c2}, anime battle, power scaling, {scenario}"
-
     return f"""
 🔥 {c1} vs {c2} - EPIC ANIME BATTLE
-
 {scenario}
 
 💥 Power scaling | transformations | ultimate clash
 
 COMMENT WHO WINS 👇
-
-{keywords}
 """.strip()
 
 
@@ -171,9 +132,6 @@ def make_hashtags():
     return "#anime #shorts #battle #vs #whatif #powerlevels"
 
 
-# =============================
-# SCRIPT ENGINE
-# =============================
 def build_script(c1, c2, scenario):
     hook = build_hook(c1, c2)
 
@@ -189,17 +147,12 @@ def build_script(c1, c2, scenario):
     ]
 
 
-# =============================
-# VIRAL SCORE
-# =============================
 def viral_score(title, script, hook):
     score = 0
-
     if "vs" in title.lower(): score += 2
     if "🔥" in title or "⚡" in title: score += 2
     if "WHO" in hook or "WHAT" in hook: score += 2
     if any("FINAL" in s.upper() for s in script): score += 2
-
     return score
 
 
@@ -208,36 +161,27 @@ def quality_flag(score):
 
 
 # =============================
-# MAIN GENERATOR (NOW LEARNING-AWARE)
+# MAIN GENERATOR (FIXED)
 # =============================
 def generate():
-  signal = get_signal()
-best_video = get_best_video()
+    signal = get_signal()
+    best_video = None
 
-if best_video:
-    print("🏆 BEST VIDEO:", best_video.get("title", "Unknown"))
+    try:
+        best_video = get_best_video()
+    except:
+        best_video = None
 
-    c1, c2 = pick()
+    c1, c2 = pick(best_video)
 
-if best_video and "characters" in best_video:
-    chars = best_video.get("characters", [])
+    if best_video and isinstance(best_video, dict):
+        chars = best_video.get("characters", [])
+        if len(chars) >= 2:
+            c1, c2 = chars[0], chars[1]
 
-    if len(chars) >= 2:
-        c1 = chars[0]
-        c2 = chars[1]
-
-        print("🧠 Reusing winning characters:", c1, "vs", c2)
     scenario = random.choice(SCENARIOS)
 
     title = make_title(c1, c2, scenario)
-
-if best_video and best_video.get("title"):
-    old_title = best_video["title"]
-
-    if "🔥" in old_title and "🔥" not in title:
-        title = "🔥 " + title
-
-    print("🧠 Learning from title:", old_title)
     script = build_script(c1, c2, scenario)
     hook = script[0]
 
@@ -259,24 +203,18 @@ if best_video and best_video.get("title"):
         "signal": signal
     }
 
-    # =============================
-    # SAVE OUTPUT
-    # =============================
     os.makedirs(".", exist_ok=True)
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    # =============================
-    # FEEDBACK TO SYSTEM CORE
-    # =============================
     update_memory("uploaded_videos", {
-    "title": title,
-    "hook": hook,
-    "characters": [c1, c2],
-    "scenario": scenario,
-    "score": score
-})
+        "title": title,
+        "hook": hook,
+        "characters": [c1, c2],
+        "scenario": scenario,
+        "score": score
+    })
 
     update_memory("best_titles", title)
     update_memory("best_hooks", hook)
