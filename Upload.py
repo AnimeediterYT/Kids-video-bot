@@ -159,11 +159,11 @@ def upload(video_path, metadata, youtube):
         print("✅ UPLOAD SUCCESS:", video_id)
 
         update_memory("uploaded_videos", {
-            "video_id": video_id,
-            "title": metadata["title"],
-            "signal": metadata.get("signal", "UNKNOWN"),
-            "timestamp": time.time()
-        })
+    "video_id": video_id,
+    "title": metadata["title"],
+    "signal": metadata.get("signal", "UNKNOWN"),
+    "timestamp": time.time()
+})
 
         update_memory("best_titles", metadata["title"])
 
