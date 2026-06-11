@@ -11,8 +11,8 @@ from system_core import (
     update_memory,
     get_intelligence,
     get_signal,
-    get_value,
-    set_value
+    record_video_analytics,
+    calculate_score,
 )
 print("🚀 UPLOAD MODULE STARTED (AI GROWTH ENGINE)")
 
