@@ -162,7 +162,15 @@ def upload(video_path, metadata, youtube):
 
         video_id = response.get("id")
 print("✅ UPLOAD SUCCESS:", video_id)
+set_value(
+    "latest_video_id",
+    video_id
+)
 
+set_value(
+    "latest_video_url",
+    f"https://youtube.com/watch?v={video_id}"
+)
 video_url = f"https://www.youtube.com/watch?v={video_id}"
 
 update_memory("video_urls", {
