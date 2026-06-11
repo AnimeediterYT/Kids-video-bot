@@ -1,11 +1,14 @@
 import os
 import json
 import time
+
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-print("🚀 UPLOAD MODULE STARTED (PHASE COMPLETE)")
+from system_core import update_memory, get_intelligence, get_signal
+
+print("🚀 UPLOAD MODULE STARTED (AI GROWTH ENGINE)")
 
 
 # =============================
@@ -48,7 +51,7 @@ def get_youtube():
 
 
 # =============================
-# LOAD DATA SAFE
+# LOAD DATA
 # =============================
 def load_data():
     try:
@@ -60,44 +63,57 @@ def load_data():
 
 
 # =============================
-# BUILD METADATA (PHASE COMPLETE)
+# GROWTH METADATA ENGINE (IMPROVED)
 # =============================
 def build_metadata(data):
-    title = data.get("title", "Anime Battle")[:95]
+    signal = get_signal()
+    memory = get_intelligence()
 
-    description = data.get("description", "Anime battle shorts")
+    title = data.get("title", "Anime Battle")
+
+    description = data.get("description", "")
     hashtags = data.get("hashtags", "#anime #shorts #battle #vs #whatif")
 
-    script = data.get("script", [])
+    # -----------------------------
+    # CTR OPTIMIZATION
+    # -----------------------------
+    if "🔥" not in title:
+        title = "🔥 " + title
 
-    # safety enrichment
     if "#shorts" not in title.lower():
-        title = title + " #shorts"
+        title += " #shorts"
+
+    # -----------------------------
+    # MEMORY BOOST (TOP PATTERNS)
+    # -----------------------------
+    if signal == "STRONG_WINNERS":
+        title = title.upper() if len(title) < 80 else title
 
     full_description = f"""
 {description}
 
-{hashtags}
+💥 Anime Battle Simulation
+⚡ Power scaling test
+🔥 What if scenario
 
-🔥 What if anime battle scenario
-⚡ Power scaling fight simulation
-💥 Who wins? Comment below!
+COMMENT WHO WINS 👇
 
-#anime #shorts
+#anime #shorts #battle #vs #whatif
 """.strip()
 
-    pinned_comment = f"👇 Who wins this fight?\n{title}"
+    pinned_comment = f"👇 Who wins?\n🔥 {title}"
 
     return {
-        "title": title,
-        "description": full_description[:5000],
+        "title": title[:100],
+        "description": full_description[:4500],
         "tags": ["anime", "shorts", "battle", "vs", "whatif"],
-        "pinned_comment": pinned_comment
+        "pinned_comment": pinned_comment,
+        "signal": signal
     }
 
 
 # =============================
-# UPLOAD FUNCTION
+# UPLOAD ENGINE
 # =============================
 def upload(video_path, metadata, youtube):
 
@@ -149,8 +165,19 @@ def upload(video_path, metadata, youtube):
         video_id = response.get("id")
         print("✅ UPLOAD SUCCESS:", video_id)
 
-        # future phase hook (NOT ACTIVE YET)
-        print("📌 PINNED COMMENT READY:", metadata["pinned_comment"])
+        # =============================
+        # FEEDBACK LOOP (LEARNING)
+        # =============================
+        update_memory("uploaded_videos", {
+            "video_id": video_id,
+            "title": metadata["title"],
+            "signal": metadata.get("signal", "UNKNOWN"),
+            "timestamp": time.time()
+        })
+
+        update_memory("best_titles", metadata["title"])
+
+        print("📌 PINNED COMMENT:", metadata["pinned_comment"])
 
         return True
 
@@ -177,4 +204,4 @@ if __name__ == "__main__":
         print("❌ UPLOAD FAILED (NO FAKE SUCCESS)")
         exit(1)
 
-    print("🎬 UPLOAD MODULE FINISHED (PHASE COMPLETE)")
+    print("🎬 UPLOAD MODULE FINISHED (AI SYSTEM ACTIVE)")
