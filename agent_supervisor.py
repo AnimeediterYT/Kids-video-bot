@@ -36,30 +36,54 @@ SCENARIOS = [
 # =============================
 def pick():
     memory = get_intelligence()
-    best_video = get_best_video()
 
-    # bias toward learned best characters if available
-    if best_video:
-        learned_chars = best_video.get("characters", [])
-    else:
-        learned_chars = memory.get("characters", [])
+    # safe access (never crashes even if system_core changes)
+    best_video = None
+    try:
+        from system_core import get_best_video
+        best_video = get_best_video()
+    except:
+        best_video = None
 
-    if learned_chars:
-        # flatten safely
-        flat = []
-        for item in learned_chars:
-            if isinstance(item, list):
-                flat.extend(item)
-            else:
-                flat.append(item)
+    learned_chars = []
 
-        flat = [c for c in flat if c]
+    # -----------------------------
+    # 1. Try best video memory first
+    # -----------------------------
+    if best_video and isinstance(best_video, dict):
+        learned_chars = best_video.get("characters", []) or []
 
-        if len(flat) >= 2:
-            c1, c2 = random.sample(flat, 2)
+    # -----------------------------
+    # 2. fallback to global memory
+    # -----------------------------
+    if not learned_chars:
+        learned_chars = memory.get("characters", []) or []
+
+    # -----------------------------
+    # 3. flatten safely (NO CRASH EVER)
+    # -----------------------------
+    flat = []
+    for item in learned_chars:
+        if isinstance(item, list):
+            flat.extend(item)
+        elif isinstance(item, str):
+            flat.append(item)
+
+    flat = [c for c in flat if c]
+
+    # -----------------------------
+    # 4. smart pick if enough data
+    # -----------------------------
+    if len(flat) >= 2:
+        import random
+        c1, c2 = random.sample(flat, 2)
+        if c1 != c2:
             return c1, c2
 
-    # fallback random
+    # -----------------------------
+    # 5. absolute fallback (guaranteed safe)
+    # -----------------------------
+    import random
     c1 = random.choice(CHARACTERS)
     c2 = random.choice(CHARACTERS)
 
