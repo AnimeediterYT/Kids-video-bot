@@ -4,9 +4,9 @@ import os
 from system_core import (
     get_intelligence,
     update_memory,
-    get_signal
+    get_signal,
+    get_best_video
 )
-
 OUTPUT_FILE = "current_matchup.json"
 
 
@@ -173,7 +173,11 @@ def quality_flag(score):
 # MAIN GENERATOR (NOW LEARNING-AWARE)
 # =============================
 def generate():
-    signal = get_signal()
+  signal = get_signal()
+best_video = get_best_video()
+
+if best_video:
+    print("🏆 BEST VIDEO:", best_video.get("title", "Unknown"))
 
     c1, c2 = pick()
     scenario = random.choice(SCENARIOS)
