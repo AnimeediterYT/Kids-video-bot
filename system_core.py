@@ -1,88 +1,80 @@
 import json
 import os
-from system_core import load_state, save_state, update_memory
+
+STATE_FILE = "system_state.json"
 
 
 # =============================
-# LOAD UPLOADED DATA
+# LOAD STATE
 # =============================
-def get_uploaded_videos():
+def load_state():
+    if not os.path.exists(STATE_FILE):
+        return {}
+
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+# =============================
+# SAVE STATE
+# =============================
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
+# =============================
+# UPDATE MEMORY
+# =============================
+def update_memory(key, value):
     state = load_state()
-    return state.get("uploaded_videos", [])
+
+    if key not in state:
+        state[key] = []
+
+    if isinstance(state[key], list):
+        state[key].append(value)
+        state[key] = state[key][-50:]  # keep last 50
+    else:
+        state[key] = value
+
+    save_state(state)
 
 
 # =============================
-# SIMPLE PERFORMANCE SIMULATOR
-# (replace later with YouTube API stats)
+# INTELLIGENCE FEED
 # =============================
-def estimate_performance(video):
-    score = 0
+def get_intelligence():
+    state = load_state()
 
-    title = video.get("title", "")
-    signal = video.get("signal", "")
-
-    if "🔥" in title:
-        score += 2
-    if "VS" in title.upper() or "vs" in title.lower():
-        score += 2
-    if signal == "STRONG_WINNERS":
-        score += 3
-
-    # fake randomness to simulate real world variance
-    import random
-    score += random.randint(0, 2)
-
-    return score
+    return {
+        "hooks": state.get("best_hooks", []),
+        "titles": state.get("best_titles", []),
+        "characters": state.get("best_characters", []),
+        "scenarios": state.get("best_scenarios", [])
+    }
 
 
 # =============================
-# ANALYSIS ENGINE
+# SYSTEM SIGNAL
 # =============================
-def analyze():
-    videos = get_uploaded_videos()
+def get_signal():
+    state = load_state()
+    videos = state.get("video_memory", [])
 
-    if not videos:
-        print("⚠️ No videos to analyze")
-        return
+    if len(videos) < 3:
+        return "LEARNING_PHASE"
 
-    results = []
+    scores = [v.get("score", 0) for v in videos]
+    avg = sum(scores) / len(scores)
+    best = max(scores)
 
-    for v in videos:
-        score = estimate_performance(v)
-
-        results.append({
-            "video_id": v.get("video_id"),
-            "title": v.get("title"),
-            "score": score
-        })
-
-    # sort best to worst
-    results.sort(key=lambda x: x["score"], reverse=True)
-
-    best = results[:3]
-    worst = results[-3:]
-
-    # =============================
-    # FEEDBACK LOOP INTO MEMORY
-    # =============================
-    update_memory("best_performing_videos", best)
-    update_memory("worst_performing_videos", worst)
-
-    # extract patterns
-    for b in best:
-        update_memory("winning_titles", b["title"])
-
-    for w in worst:
-        update_memory("avoid_titles", w["title"])
-
-    print("📊 ANALYTICS COMPLETE")
-    print("🏆 BEST:", best)
-    print("⚠️ WORST:", worst)
-
-
-# =============================
-# RUN
-# =============================
-if __name__ == "__main__":
-    print("🧠 ANALYTICS BRAIN RUNNING...")
-    analyze()
+    if best > avg * 1.5:
+        return "STRONG_WINNERS"
+    elif best < avg:
+        return "WEAK_CONTENT"
+    else:
+        return "STABLE"
