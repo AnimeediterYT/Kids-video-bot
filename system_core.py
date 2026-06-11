@@ -224,3 +224,15 @@ def get_system_report():
             get_value("analytics_history", [])
         ),
     }
+def get_best_video():
+    state = load_state()
+
+    videos = state.get("uploaded_videos", [])
+
+    if not videos:
+        return None
+
+    return max(
+        videos,
+        key=lambda v: v.get("score", 0)
+    )
