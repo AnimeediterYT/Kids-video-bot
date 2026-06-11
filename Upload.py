@@ -2,7 +2,8 @@ import os
 import json
 import time
 
-from googleapiclient.discovery import build
+ from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
