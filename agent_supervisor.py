@@ -180,6 +180,15 @@ if best_video:
     print("🏆 BEST VIDEO:", best_video.get("title", "Unknown"))
 
     c1, c2 = pick()
+
+if best_video and "characters" in best_video:
+    chars = best_video.get("characters", [])
+
+    if len(chars) >= 2:
+        c1 = chars[0]
+        c2 = chars[1]
+
+        print("🧠 Reusing winning characters:", c1, "vs", c2)
     scenario = random.choice(SCENARIOS)
 
     title = make_title(c1, c2, scenario)
