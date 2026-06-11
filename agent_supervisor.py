@@ -38,8 +38,10 @@ def pick():
     memory = get_intelligence()
 
     # bias toward learned best characters if available
+    if best_video:
+    learned_chars = [best_video.get("characters", [])]
+else:
     learned_chars = memory.get("characters", [])
-
     if learned_chars:
         flat = [c for pair in learned_chars for c in pair if c]
         if len(flat) >= 2:
@@ -60,6 +62,7 @@ def pick():
 # =============================
 def make_title(c1, c2, scenario):
     memory = get_intelligence()
+    best_video = get_best_video()
     best_titles = memory.get("titles", [])
 
     candidates = best_titles + [
