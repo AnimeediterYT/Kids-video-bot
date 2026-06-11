@@ -6,8 +6,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-from system_core import update_memory, get_intelligence, get_signal
-
+from system_core import (
+    update_memory,
+    get_intelligence,
+    get_signal,
+    get_value,
+    set_value
+)
 print("🚀 UPLOAD MODULE STARTED (AI GROWTH ENGINE)")
 
 
