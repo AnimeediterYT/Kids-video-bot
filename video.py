@@ -7,7 +7,7 @@ from moviepy.editor import *
 from PIL import Image
 
 # -----------------------------
-# FIX PILLLOW COMPATIBILITY
+# FIX PILLOW COMPATIBILITY
 # -----------------------------
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -20,24 +20,21 @@ os.makedirs("output", exist_ok=True)
 
 
 # -----------------------------
-# LOAD DATA (FULL SAFE)
+# LOAD JSON SAFE
 # -----------------------------
 try:
-    if not os.path.exists("current_matchup.json"):
-        raise Exception("missing json")
-
-    data = json.load(open("current_matchup.json", "r", encoding="utf-8"))
+    with open("current_matchup.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
 
     title = data.get("title", "Anime Battle")
-    description = data.get("description", "Anime battle shorts")
     script = data.get("script", ["Battle starts!", "Who wins?!"])
+    hook = data.get("hook", script[0])
 
 except Exception as e:
     print("⚠️ JSON LOAD FAILED:", e)
-
     title = "Anime Battle"
-    description = "Anime battle shorts"
-    script = ["Battle starts!", "Power explodes!", "Who wins?!"]
+    hook = "WHO WINS THIS?!"
+    script = [hook, "Battle starts!", "Who wins?!"]
 
 
 # -----------------------------
@@ -68,7 +65,7 @@ print(f"🎬 Rendering: {c1} vs {c2}")
 
 
 # -----------------------------
-# IMAGE FETCH (SAFE)
+# SAFE IMAGE FETCH (NON-BLOCKING STYLE)
 # -----------------------------
 def fetch_image(name, filename):
     try:
@@ -93,7 +90,7 @@ img2 = fetch_image(c2, "char2.jpg")
 
 
 # -----------------------------
-# BASE CANVAS
+# BASE BACKGROUND
 # -----------------------------
 clips = [
     ColorClip((1080, 1920), color=(10, 10, 10)).set_duration(duration)
@@ -101,34 +98,34 @@ clips = [
 
 
 # -----------------------------
-# TOP SECTION
+# TOP CHARACTER
 # -----------------------------
-if img1 and os.path.exists(img1):
-    clips.append(ImageClip(img1).resize(width=1080).set_duration(duration))
-else:
-    clips.append(ColorClip((1080, 960), color=(60, 20, 20)).set_duration(duration))
+clips.append(
+    ImageClip(img1).resize(width=1080).set_duration(duration)
+    if img1 and os.path.exists(img1)
+    else ColorClip((1080, 960), color=(60, 20, 20)).set_duration(duration)
+)
 
 
 # -----------------------------
-# BOTTOM SECTION
+# BOTTOM CHARACTER
 # -----------------------------
-if img2 and os.path.exists(img2):
-    clips.append(
-        ImageClip(img2)
-        .resize(width=1080)
-        .set_duration(duration)
-        .set_position(("center", 960))
-    )
-else:
-    clips.append(ColorClip((1080, 960), color=(20, 20, 60)).set_duration(duration))
+clips.append(
+    ImageClip(img2)
+    .resize(width=1080)
+    .set_duration(duration)
+    .set_position(("center", 960))
+    if img2 and os.path.exists(img2)
+    else ColorClip((1080, 960), color=(20, 20, 60)).set_duration(duration)
+)
 
 
 # -----------------------------
-# VS TEXT
+# VS TEXT (CENTER LAYER)
 # -----------------------------
 try:
     clips.append(
-        TextClip("VS", fontsize=110, color="red")
+        TextClip("VS", fontsize=120, color="red")
         .set_duration(duration)
         .set_position("center")
     )
@@ -137,20 +134,43 @@ except:
 
 
 # -----------------------------
-# SUBTITLE ENGINE
+# 🔥 HOOK-FIRST RETENTION LAYER
+# -----------------------------
+try:
+    clips.append(
+        TextClip(
+            hook,
+            fontsize=55,
+            color="yellow",
+            method="caption",
+            size=(1000, None)
+        )
+        .set_start(0)
+        .set_duration(min(2, duration * 0.25))  # FIRST 2 SECONDS FOCUS
+        .set_position(("center", 200))
+    )
+except:
+    pass
+
+
+# -----------------------------
+# SUBTITLE ENGINE (RETENTION TIMED)
 # -----------------------------
 if not script:
-    script = ["Fight starts!", "Power explodes!", "Who wins?!"]
+    script = [hook, "Battle starts!", "Who wins?!"]
 
-step = duration / len(script)
+# keep hook OUT of repeated subtitles
+body_script = script[1:] if len(script) > 1 else script
 
-for i, line in enumerate(script):
+step = duration / max(len(body_script), 1)
+
+for i, line in enumerate(body_script):
     try:
         clips.append(
             TextClip(
                 line,
                 fontsize=45,
-                color="yellow",
+                color="white",
                 method="caption",
                 size=(1000, None)
             )
@@ -163,7 +183,7 @@ for i, line in enumerate(script):
 
 
 # -----------------------------
-# FINAL RENDER (CRASH SAFE)
+# FINAL RENDER SAFE
 # -----------------------------
 try:
     final = CompositeVideoClip(clips)
