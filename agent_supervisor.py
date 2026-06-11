@@ -4,8 +4,7 @@ import os
 from system_core import (
     get_intelligence,
     update_memory,
-    get_signal,
-    get_best_video
+    get_signal
 )
 OUTPUT_FILE = "current_matchup.json"
 
