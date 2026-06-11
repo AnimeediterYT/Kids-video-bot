@@ -51,17 +51,41 @@ CLIMAX = [
 
 
 # =============================
-# TITLE ENGINE
+# TITLE ENGINE (UPGRADED)
 # =============================
 def make_title(c1, c2, scenario):
-    styles = [
+    candidates = [
         f"{c1} vs {c2} - {scenario}",
         f"🔥 {c1} vs {c2} | {scenario}",
         f"{c1} ⚡ VS ⚡ {c2} - Ultimate Battle",
         f"WHO IS STRONGER? {c1} or {c2}?",
-        f"{c1} vs {c2} - No Limits Fight"
+        f"{c1} vs {c2} - No Limits Fight",
+        f"INSANE FIGHT: {c1} vs {c2}",
+        f"{c1} vs {c2} - FINAL FORM SHOWDOWN",
+        f"UNSTOPPABLE WAR: {c1} vs {c2}"
     ]
-    return random.choice(styles)
+
+    def score(title: str) -> int:
+        s = 0
+        if "vs" in title.lower():
+            s += 2
+        if "🔥" in title or "⚡" in title:
+            s += 2
+        if "?" in title:
+            s += 1
+        if len(title) < 60:
+            s += 1
+        if "FINAL" in title.upper() or "INSANE" in title.upper():
+            s += 1
+        return s
+
+    scored = [(t, score(t)) for t in candidates]
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    top_score = scored[0][1]
+    top_titles = [t for t, s in scored if s == top_score]
+
+    return random.choice(top_titles)
 
 
 # =============================
@@ -116,7 +140,7 @@ def pick():
 
 
 # =============================
-# VIRAL SCORE (INTERNAL ONLY)
+# VIRAL SCORE
 # =============================
 def viral_score(title, script):
     score = 0
@@ -147,12 +171,11 @@ def generate():
     score = viral_score(title, script)
 
     data = {
-        # CORE PIPELINE (UNCHANGED)
         "title": title,
         "description": description,
         "script": script,
 
-        # SAFE ADD-ONS (DO NOT BREAK PIPELINE)
+        # SAFE ADDITIONS
         "characters": [c1, c2],
         "scenario": scenario,
         "hook": script[0] if script else "",
