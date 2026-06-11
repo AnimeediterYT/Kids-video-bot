@@ -6,8 +6,10 @@ import requests
 from moviepy.editor import *
 from PIL import Image
 
+from system_core import update_memory, get_intelligence
+
 # -----------------------------
-# PILLOW FIX
+# PIL FIX
 # -----------------------------
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -20,7 +22,7 @@ os.makedirs("output", exist_ok=True)
 
 
 # -----------------------------
-# LOAD JSON SAFE
+# LOAD DATA SAFE
 # -----------------------------
 try:
     with open("current_matchup.json", "r", encoding="utf-8") as f:
@@ -35,6 +37,13 @@ except Exception as e:
     title = "Anime Battle"
     hook = "WHO WINS THIS?!"
     script = [hook, "Battle starts!", "Who wins?!"]
+
+
+# -----------------------------
+# SYSTEM MEMORY (LEARNING INPUT)
+# -----------------------------
+memory = get_intelligence()
+top_hooks = memory.get("hooks", [])
 
 
 # -----------------------------
@@ -65,7 +74,7 @@ print(f"🎬 Rendering: {c1} vs {c2}")
 
 
 # -----------------------------
-# IMAGE FETCH (SAFE)
+# IMAGE FETCH
 # -----------------------------
 def fetch_image(name, filename):
     try:
@@ -90,10 +99,10 @@ img2 = fetch_image(c2, "char2.jpg")
 
 
 # -----------------------------
-# BASE BACKGROUND
+# BASE LAYER
 # -----------------------------
 clips = [
-    ColorClip((1080, 1920), color=(8, 8, 8)).set_duration(duration)
+    ColorClip((1080, 1920), color=(10, 10, 10)).set_duration(duration)
 ]
 
 
@@ -121,7 +130,7 @@ clips.append(
 
 
 # -----------------------------
-# VS CENTER ELEMENT
+# VS LAYER
 # -----------------------------
 try:
     clips.append(
@@ -134,12 +143,18 @@ except:
 
 
 # -----------------------------
-# 🔥 HOOK PRIORITY LAYER (FIRST 2s VISUAL DOMINANCE)
+# 🔥 LEARNING-BASED HOOK LAYER
 # -----------------------------
 try:
+    best_hook = hook
+
+    if top_hooks:
+        # reuse strongest learned hook if available
+        best_hook = top_hooks[-1]
+
     clips.append(
         TextClip(
-            hook,
+            best_hook,
             fontsize=55,
             color="yellow",
             method="caption",
@@ -154,12 +169,14 @@ except:
 
 
 # -----------------------------
-# SUBTITLES (RETENTION TIMED)
+# SUBTITLE RETENTION ENGINE
 # -----------------------------
 if not script:
     script = [hook, "Battle starts!", "Who wins?!"]
 
 body = script[1:] if len(script) > 1 else script
+
+# adaptive pacing (slightly slower for retention)
 step = duration / max(len(body), 1)
 
 for i, line in enumerate(body):
@@ -181,7 +198,7 @@ for i, line in enumerate(body):
 
 
 # -----------------------------
-# FINAL RENDER (STABLE)
+# FINAL RENDER
 # -----------------------------
 try:
     final = CompositeVideoClip(clips)
@@ -197,6 +214,15 @@ try:
     )
 
     print("✅ VIDEO GENERATED SUCCESSFULLY")
+
+    # -------------------------
+    # FEEDBACK TO SYSTEM CORE
+    # -------------------------
+    update_memory("video_render_styles", {
+        "title_style": "vs_split",
+        "hook_used": best_hook,
+        "duration": duration
+    })
 
 except Exception as e:
     print("❌ VIDEO FAILED:", e)
