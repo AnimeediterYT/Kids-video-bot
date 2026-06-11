@@ -232,13 +232,13 @@ if best_video and best_video.get("title"):
     # =============================
     # FEEDBACK TO SYSTEM CORE
     # =============================
-    update_memory("video_memory", {
-        "title": title,
-        "hook": hook,
-        "characters": [c1, c2],
-        "scenario": scenario,
-        "score": score
-    })
+    update_memory("uploaded_videos", {
+    "title": title,
+    "hook": hook,
+    "characters": [c1, c2],
+    "scenario": scenario,
+    "score": score
+})
 
     update_memory("best_titles", title)
     update_memory("best_hooks", hook)
