@@ -168,7 +168,7 @@ update_memory("video_urls", {
 
 print("🔗 VIDEO URL:", video_url)
 
-        update_memory("uploaded_videos", {
+        update_memory("youtube_uploads", {
     "video_id": video_id,
     "title": metadata["title"],
     "signal": metadata.get("signal", "UNKNOWN"),
