@@ -156,7 +156,17 @@ def upload(video_path, metadata, youtube):
             return False
 
         video_id = response.get("id")
-        print("✅ UPLOAD SUCCESS:", video_id)
+print("✅ UPLOAD SUCCESS:", video_id)
+
+video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+update_memory("video_urls", {
+    "video_id": video_id,
+    "url": video_url,
+    "timestamp": time.time()
+})
+
+print("🔗 VIDEO URL:", video_url)
 
         update_memory("uploaded_videos", {
     "video_id": video_id,
