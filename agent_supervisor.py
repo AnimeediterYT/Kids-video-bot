@@ -40,7 +40,7 @@ def pick():
     best_video = None
     try:
         from system_core import get_best_video
-        best_video = get_best_video()
+        best_video = none
     except:
         best_video = None
 
