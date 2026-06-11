@@ -15,7 +15,51 @@ from system_core import (
     calculate_score,
 )
 print("🚀 UPLOAD MODULE STARTED (AI GROWTH ENGINE)")
+def fetch_video_stats(youtube, video_id):
+    try:
+        response = youtube.videos().list(
+            part="statistics",
+            id=video_id
+        ).execute()
 
+        items = response.get("items", [])
+
+        if not items:
+            return None
+
+        stats = items[0].get("statistics", {})
+
+        views = int(stats.get("viewCount", 0))
+        likes = int(stats.get("likeCount", 0))
+        comments = int(stats.get("commentCount", 0))
+
+        score = calculate_score(
+            views=views,
+            likes=likes,
+            comments=comments
+        )
+
+        record_video_analytics(
+            video_id=video_id,
+            views=views,
+            likes=likes,
+            comments=comments,
+            score=score
+        )
+
+        print(
+            f"📊 Stats | Views={views} Likes={likes} Comments={comments} Score={score}"
+        )
+
+        return score
+
+    except HttpError as e:
+        print("⚠️ Analytics error:", e)
+        return None
+
+    except Exception as e:
+        print("⚠️ Stats fetch failed:", e)
+        return None
 
 # =============================
 # ENV LOADER
