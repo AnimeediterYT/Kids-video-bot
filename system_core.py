@@ -89,7 +89,7 @@ def get_top_items(memory_key, limit=10):
 # =============================
 # INTELLIGENCE FEED
 # =============================
- def get_intelligence():
+def get_intelligence():
     state = load_state()
 
     return {
