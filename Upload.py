@@ -205,30 +205,34 @@ def upload(video_path, metadata, youtube):
             print("❌ UPLOAD FAILED AFTER RETRIES")
             return False
 
-        video_id = response.get("id")
-print("✅ UPLOAD SUCCESS:", video_id)
-set_value(
-    "latest_video_id",
-    video_id
-)
+                video_id = response.get("id")
 
-set_value(
-    "latest_video_url",
-    f"https://youtube.com/watch?v={video_id}"
-)
-video_url = f"https://www.youtube.com/watch?v={video_id}"
-# Analytics snapshot
-fetch_video_stats(
-    youtube,
-    video_id
-)
-update_memory("video_urls", {
-    "video_id": video_id,
-    "url": video_url,
-    "timestamp": time.time()
-})
+        print("✅ UPLOAD SUCCESS:", video_id)
 
-print("🔗 VIDEO URL:", video_url)
+        set_value(
+            "latest_video_id",
+            video_id
+        )
+
+        set_value(
+            "latest_video_url",
+            f"https://youtube.com/watch?v={video_id}"
+        )
+
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+        fetch_video_stats(
+            youtube,
+            video_id
+        )
+
+        update_memory("video_urls", {
+            "video_id": video_id,
+            "url": video_url,
+            "timestamp": time.time()
+        })
+
+        print("🔗 VIDEO URL:", video_url)
 
         update_memory("uploaded_videos", {
     "video_id": video_id,
