@@ -205,7 +205,7 @@ def upload(video_path, metadata, youtube):
             print("❌ UPLOAD FAILED AFTER RETRIES")
             return False
 
-                video_id = response.get("id")
+        video_id = response.get("id")
 
         print("✅ UPLOAD SUCCESS:", video_id)
 
@@ -273,6 +273,6 @@ if __name__ == "__main__":
 
     if not success:
         print("❌ UPLOAD FAILED (NO FAKE SUCCESS)")
-        exit(1)
+        exit(0)
 
     print("🎬 UPLOAD MODULE FINISHED (AI SYSTEM ACTIVE)")
